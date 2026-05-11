@@ -3,10 +3,13 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RSVPSection from './RSVPSection';
 
-const mockInsert = vi.fn();
+// Mock the Supabase chain: from('rsvps').insert([...]).select('edit_token').single()
+const singleFn = vi.fn();
+const selectFn = vi.fn(() => ({ single: singleFn }));
+const insertFn = vi.fn(() => ({ select: selectFn }));
 
 vi.mock('@/lib/supabase', () => ({
-  supabase: { from: () => ({ insert: mockInsert }) },
+  supabase: { from: () => ({ insert: insertFn }) },
 }));
 
 vi.mock('gsap', () => ({
@@ -21,8 +24,10 @@ vi.mock('@/components/ScrollReveal', () => ({
 
 describe('RSVPSection', () => {
   beforeEach(() => {
-    mockInsert.mockReset();
-    mockInsert.mockResolvedValue({ data: null, error: null });
+    singleFn.mockReset();
+    selectFn.mockClear();
+    insertFn.mockClear();
+    singleFn.mockResolvedValue({ data: { edit_token: 'test-token-1234' }, error: null });
   });
 
   afterEach(() => {
@@ -36,6 +41,25 @@ describe('RSVPSection', () => {
     expect(screen.getByPlaceholderText('your@email.com')).toBeInTheDocument();
     expect(screen.getByText('Number of Guests *')).toBeInTheDocument();
     expect(screen.getByText('Dietary Preference *')).toBeInTheDocument();
+  });
+
+  it('email is optional — submits successfully without email', async () => {
+    render(<RSVPSection />);
+
+    await userEvent.type(screen.getByPlaceholderText('Your full name'), 'Test User');
+    await userEvent.type(screen.getByPlaceholderText('+91-XXXXXXXXXX'), '9999999999');
+    await userEvent.click(screen.getByLabelText(/^Vegetarian$/i));
+    await userEvent.click(screen.getByLabelText(/Kerala reception/i));
+
+    fireEvent.click(screen.getByRole('button', { name: /Submit RSVP/i }));
+
+    await waitFor(() => {
+      expect(insertFn).toHaveBeenCalled();
+    });
+
+    const calls = insertFn.mock.calls as unknown as [Record<string, unknown>[]][];
+    const payload = calls[0][0][0];
+    expect(payload.email).toBeNull();
   });
 
   it('renders city selection checkboxes', () => {
@@ -89,9 +113,7 @@ describe('RSVPSection', () => {
     });
   });
 
-  it('submits successfully with valid data', async () => {
-    mockInsert.mockResolvedValue({ data: null, error: null });
-
+  it('submits successfully with valid data and shows edit link', async () => {
     render(<RSVPSection />);
 
     await userEvent.type(screen.getByPlaceholderText('Your full name'), 'Test User');
@@ -102,11 +124,16 @@ describe('RSVPSection', () => {
     fireEvent.click(screen.getByRole('button', { name: /Submit RSVP/i }));
 
     await waitFor(() => {
-      expect(mockInsert).toHaveBeenCalled();
+      expect(insertFn).toHaveBeenCalled();
       expect(screen.getByText(/Thank You!/i)).toBeInTheDocument();
+      // Edit URL panel is shown
+      expect(screen.getByText(/Need to make changes later/i)).toBeInTheDocument();
+      const url = screen.getByDisplayValue(/\/rsvp\/edit\/test-token-1234$/i);
+      expect(url).toBeInTheDocument();
     });
 
-    const payload = mockInsert.mock.calls[0][0][0];
+    const calls = insertFn.mock.calls as unknown as [Record<string, unknown>[]][];
+    const payload = calls[0][0][0];
     expect(payload.full_name).toBe('Test User');
     expect(payload.phone).toBe('9999999999');
     expect(payload.dietary).toBe('veg');
@@ -115,7 +142,7 @@ describe('RSVPSection', () => {
   });
 
   it('shows error banner when Supabase insert fails', async () => {
-    mockInsert.mockResolvedValue({ data: null, error: { message: 'Network error' } });
+    singleFn.mockResolvedValue({ data: null, error: { message: 'Network error' } });
 
     render(<RSVPSection />);
 
@@ -146,16 +173,54 @@ describe('RSVPSection', () => {
     expect(veg).not.toBeChecked();
   });
 
-  it('has default datetime values for travel', async () => {
+  it('hides arrival/departure until accommodation or pickup is requested', async () => {
     const { container } = render(<RSVPSection />);
 
     await userEvent.click(screen.getByLabelText(/Kolkata celebrations/i));
-    await userEvent.click(screen.getByLabelText(/Kerala reception/i));
+
+    expect(container.querySelectorAll('input[type="datetime-local"]').length).toBe(0);
+    expect(screen.queryByText(/Expected Arrival/i)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByLabelText(/Yes, I need accommodation help/i));
+
+    expect(screen.getByText(/Expected Arrival/i)).toBeInTheDocument();
+    expect(screen.getByText(/Expected Departure/i)).toBeInTheDocument();
+    const datetimeInputs = container.querySelectorAll('input[type="datetime-local"]');
+    expect(datetimeInputs.length).toBe(2);
+    expect(datetimeInputs[0]).toHaveValue('');
+    expect(datetimeInputs[1]).toHaveValue('');
+  });
+
+  it('blocks submit when accommodation is requested but travel dates are blank', async () => {
+    render(<RSVPSection />);
+
+    await userEvent.type(screen.getByPlaceholderText('Your full name'), 'Test User');
+    await userEvent.type(screen.getByPlaceholderText('+91-XXXXXXXXXX'), '9999999999');
+    await userEvent.click(screen.getByLabelText(/^Vegetarian$/i));
+    await userEvent.click(screen.getByLabelText(/Kolkata celebrations/i));
+    await userEvent.click(screen.getByLabelText(/July 6 — Reception/i));
+    await userEvent.click(screen.getByLabelText(/Yes, I need accommodation help/i));
+
+    fireEvent.click(screen.getByRole('button', { name: /Submit RSVP/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Please enter your expected arrival/i)).toBeInTheDocument();
+      expect(screen.getByText(/Please enter your expected departure/i)).toBeInTheDocument();
+    });
+  });
+
+  it('"Use suggested" chip fills in the suggested arrival date', async () => {
+    const { container } = render(<RSVPSection />);
+
+    await userEvent.click(screen.getByLabelText(/Kolkata celebrations/i));
+    await userEvent.click(screen.getByLabelText(/Yes, I need accommodation help/i));
+
+    const chips = screen.getAllByText(/Use suggested:/i);
+    expect(chips.length).toBeGreaterThanOrEqual(2);
+
+    await userEvent.click(chips[0]);
 
     const datetimeInputs = container.querySelectorAll('input[type="datetime-local"]');
     expect(datetimeInputs[0]).toHaveValue('2026-07-05T18:00');
-    expect(datetimeInputs[1]).toHaveValue('2026-07-09T10:00');
-    expect(datetimeInputs[2]).toHaveValue('2026-07-18T12:00');
-    expect(datetimeInputs[3]).toHaveValue('2026-07-20T10:00');
   });
 });

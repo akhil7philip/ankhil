@@ -89,11 +89,25 @@ export default function TravelSection() {
             </h4>
             <p className="font-sans-body text-sm text-[#3B2F2F] leading-relaxed">
               If you're attending both the Kolkata wedding and the Kerala reception, flights between
-              Kolkata (CCU) and Kochi (COK) are approximately 2.5–3 hours. We recommend booking
-              flights with a few days' gap to allow for rest and travel.
+              Kolkata (CCU) and Kochi (COK) are approximately 2.5–3 hours. We suggest arriving in
+              Kolkata by <strong>July 5</strong>, departing on <strong>July 9</strong>, and arriving in
+              Kerala by <strong>July 17</strong> — comfortable margins on both ends, with no
+              same-day connections.
             </p>
-            <p className="font-sans-body text-[13px] italic text-[#7B2D41] mt-3">
-              Tip: Book early for better fares during peak season!
+          </div>
+        </ScrollReveal>
+
+        {/* Weather & What to Pack */}
+        <ScrollReveal delay={0.25}>
+          <div className="mt-5 md:mt-6 bg-[rgba(61,107,91,0.08)] rounded-[4px] p-6 md:p-7">
+            <h4 className="font-serif-display text-base md:text-lg text-[#3B2F2F] mb-2">
+              Weather &amp; What to Pack
+            </h4>
+            <p className="font-sans-body text-sm text-[#3B2F2F] leading-relaxed">
+              July is monsoon season in both Kolkata and Kerala. Expect warm, humid days
+              (28–34&deg;C) with frequent showers, especially in Kerala. Pack a light umbrella or a
+              compact rain jacket, breathable cottons or linens, and comfortable closed-toe shoes
+              you don&rsquo;t mind getting damp.
             </p>
           </div>
         </ScrollReveal>

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="4" fill="#3B2F2F"/>
+  <text x="16" y="20" font-family="Georgia, 'Times New Roman', serif" font-size="13" fill="#C4A055" text-anchor="middle" letter-spacing="0.4">A&amp;A</text>
+  <line x1="11" y1="25" x2="21" y2="25" stroke="#C4A055" stroke-width="0.9" stroke-linecap="round"/>
+</svg>

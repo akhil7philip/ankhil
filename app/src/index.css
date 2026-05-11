@@ -7,6 +7,9 @@
     --warm-ivory: #F5F1EB;
     --deep-espresso: #3B2F2F;
     --muted-gold: #C4A055;
+    /* Darker gold reserved for small text on light backgrounds — passes WCAG AA against --warm-ivory.
+       Bright --muted-gold stays in use for decorative accents (lines, dots) and for text on dark backgrounds. */
+    --muted-gold-text: #8B6914;
     --warm-gold: #D4B065;
     --forest-green: #3D6B5B;
     --soft-rose: #D4958A;
@@ -75,6 +78,12 @@
   }
 
   .section-label {
+    @apply font-sans-body text-xs font-semibold uppercase tracking-[0.15em];
+    color: var(--muted-gold-text);
+  }
+
+  /* "-light" suffix matches section-heading-light: used on dark backgrounds where the brighter gold has plenty of contrast. */
+  .section-label-light {
     @apply font-sans-body text-xs font-semibold uppercase tracking-[0.15em];
     color: var(--muted-gold);
   }

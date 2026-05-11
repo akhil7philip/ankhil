@@ -6,6 +6,8 @@ interface NavigationProps {
 }
 
 const navItems = [
+  { label: 'Story', target: 'story' },
+  { label: 'Families', target: 'families' },
   { label: 'Events', target: 'events' },
   { label: 'RSVP', target: 'rsvp' },
   { label: 'Travel', target: 'travel' },
@@ -16,6 +18,7 @@ const navItems = [
 export default function Navigation({ lenis }: NavigationProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [activeSection, setActiveSection] = useState<string | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -23,6 +26,38 @@ export default function Navigation({ lenis }: NavigationProps) {
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Active section highlight — IntersectionObserver tracks which section's
+  // middle band crosses ~50% of the viewport and marks that nav item active.
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id);
+          }
+        }
+      },
+      // Trigger band sits ~10% high around the vertical middle of the viewport.
+      { rootMargin: '-50% 0px -40% 0px', threshold: 0 }
+    );
+
+    const observed: Element[] = [];
+    for (const item of navItems) {
+      const el = document.getElementById(item.target);
+      if (el) {
+        observer.observe(el);
+        observed.push(el);
+      }
+    }
+
+    return () => {
+      for (const el of observed) observer.unobserve(el);
+      observer.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -69,24 +104,33 @@ export default function Navigation({ lenis }: NavigationProps) {
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-6">
-            {navItems.map((item) => (
-              <button
-                key={item.target}
-                onClick={() => handleNavClick(item.target)}
-                className="group relative font-sans-body text-xs font-semibold uppercase tracking-[0.12em] text-[#3B2F2F] hover:text-[#3B2F2F] transition-colors duration-300 py-1"
-              >
-                {item.label}
-                <span className="absolute bottom-0 left-0 w-full h-px bg-[#C4A055] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
-              </button>
-            ))}
+            {navItems.map((item) => {
+              const isActive = activeSection === item.target;
+              return (
+                <button
+                  key={item.target}
+                  onClick={() => handleNavClick(item.target)}
+                  aria-current={isActive ? 'true' : undefined}
+                  className="group relative font-sans-body text-xs font-semibold uppercase tracking-[0.12em] text-[#3B2F2F] hover:text-[#3B2F2F] transition-colors duration-300 py-1"
+                >
+                  {item.label}
+                  <span
+                    className={`absolute bottom-0 left-0 w-full h-px bg-[#C4A055] transform transition-transform duration-300 origin-left ${
+                      isActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                    }`}
+                  />
+                </button>
+              );
+            })}
           </div>
 
           {/* Mobile hamburger */}
           <button
             onClick={() => setMobileOpen(true)}
-            className="md:hidden flex flex-col gap-1.5 p-2"
+            className="md:hidden flex flex-col gap-1 p-2"
             aria-label="Open menu"
           >
+            <span className="w-5 h-px bg-[#3B2F2F]" />
             <span className="w-5 h-px bg-[#3B2F2F]" />
             <span className="w-5 h-px bg-[#3B2F2F]" />
           </button>
