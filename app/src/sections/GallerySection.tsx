@@ -7,12 +7,12 @@ interface GalleryImage {
 }
 
 const galleryImages: GalleryImage[] = [
-  { src: '/images/gallery-1.jpg'},
-  { src: '/images/gallery-2.jpg'},
-  { src: '/images/gallery-3.jpg'},
-  { src: '/images/gallery-4.jpg'},
-  { src: '/images/gallery-5.jpg'},
-  { src: '/images/gallery-6.jpg'}
+  { src: '/images/gallery-1.jpg', alt: 'Wedding moment', aspectRatio: '4/5' },
+  { src: '/images/gallery-2.jpg', alt: 'Wedding moment', aspectRatio: '3/4' },
+  { src: '/images/gallery-3.jpg', alt: 'Wedding moment', aspectRatio: '1/1' },
+  { src: '/images/gallery-4.jpg', alt: 'Wedding moment', aspectRatio: '3/4' },
+  { src: '/images/gallery-5.jpg', alt: 'Wedding moment', aspectRatio: '4/5' },
+  { src: '/images/gallery-6.jpg', alt: 'Wedding moment', aspectRatio: '1/1' },
 ];
 
 export default function GallerySection() {
