@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import gsap from 'gsap';
 import ScrollReveal from '@/components/ScrollReveal';
+import DateTimePicker from '@/components/DateTimePicker';
 import { supabase } from '@/lib/supabase';
 
 type RSVPState = 'idle' | 'submitting' | 'success' | 'error';
@@ -431,21 +432,17 @@ export default function RSVPSection() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
                     <div>
                       <label className={labelClasses}>Expected Arrival</label>
-                      <input
-                        type="datetime-local"
-                        className={inputClasses}
+                      <DateTimePicker
                         value={form.kolkataArrival}
-                        onChange={(e) => updateField('kolkataArrival', e.target.value)}
+                        onChange={(val) => updateField('kolkataArrival', val)}
                         disabled={isSubmitting}
                       />
                     </div>
                     <div>
                       <label className={labelClasses}>Expected Departure</label>
-                      <input
-                        type="datetime-local"
-                        className={inputClasses}
+                      <DateTimePicker
                         value={form.kolkataDeparture}
-                        onChange={(e) => updateField('kolkataDeparture', e.target.value)}
+                        onChange={(val) => updateField('kolkataDeparture', val)}
                         disabled={isSubmitting}
                       />
                     </div>
@@ -489,21 +486,17 @@ export default function RSVPSection() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
                     <div>
                       <label className={labelClasses}>Expected Arrival</label>
-                      <input
-                        type="datetime-local"
-                        className={inputClasses}
+                      <DateTimePicker
                         value={form.keralaArrival}
-                        onChange={(e) => updateField('keralaArrival', e.target.value)}
+                        onChange={(val) => updateField('keralaArrival', val)}
                         disabled={isSubmitting}
                       />
                     </div>
                     <div>
                       <label className={labelClasses}>Expected Departure</label>
-                      <input
-                        type="datetime-local"
-                        className={inputClasses}
+                      <DateTimePicker
                         value={form.keralaDeparture}
-                        onChange={(e) => updateField('keralaDeparture', e.target.value)}
+                        onChange={(val) => updateField('keralaDeparture', val)}
                         disabled={isSubmitting}
                       />
                     </div>
