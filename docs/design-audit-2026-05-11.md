@@ -337,7 +337,7 @@ A simple 1200×630 image with both names, dates, and a photo. This is the highes
 ### 10.3 Default favicon (vite.svg) — **P0**
 Looks unprofessional in browser tabs. Replace with a simple A&A monogram favicon (the gold initials over cream would work directly).
 
-> **Status: Done (2026-05-12).** Custom SVG favicon at `app/public/favicon.svg`: 32×32 rounded espresso square with "A&A" centered in muted gold (Georgia serif) and a short gold underline beneath — same gold-rule motif used throughout the site. SVG renders sharp at any zoom level. Referenced via `<link rel="icon" type="image/svg+xml">` and also as `apple-touch-icon` in `index.html`. The Vite default icon is no longer linked.
+> **Status: Done (2026-05-12).** Custom favicon at `app/public/favicon.png` — A&A monogram in the site's espresso + gold palette. Referenced via `<link rel="icon" type="image/png">` and also as `apple-touch-icon` in `index.html`. The Vite default icon is no longer linked. (Originally shipped as an SVG; swapped for a PNG asset by the couple shortly after — PNG renders identically across older email clients and link-preview crawlers.)
 
 ### 10.4 `/admin` route exists — **P0** (security check)
 `AdminPage.tsx` is routed at `/admin`. Verify it requires auth before deploying — if it lists RSVPs unauthenticated, that's a data leak. Worth a quick re-read.
