@@ -4,12 +4,16 @@ import type Lenis from 'lenis';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import HeroSection from '@/sections/HeroSection';
+import OurStorySection from '@/sections/OurStorySection';
+import FamiliesSection from '@/sections/FamiliesSection';
 import EventsSection from '@/sections/EventsSection';
 import RSVPSection from '@/sections/RSVPSection';
 import TravelSection from '@/sections/TravelSection';
 import FAQSection from '@/sections/FAQSection';
 import GallerySection from '@/sections/GallerySection';
 import AdminPage from '@/pages/AdminPage';
+import RSVPEditPage from '@/pages/RSVPEditPage';
+import NotFoundPage from '@/pages/NotFoundPage';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -30,6 +34,8 @@ function HomePage({ lenis }: { lenis: Lenis | null }) {
       <Navigation lenis={lenis} />
       <main>
         <HeroSection lenis={lenis} />
+        <OurStorySection />
+        <FamiliesSection />
         <EventsSection />
         <RSVPSection />
         <TravelSection />
@@ -48,6 +54,8 @@ export default function App({ lenis }: AppProps) {
       <Routes>
         <Route path="/" element={<HomePage lenis={lenis} />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/rsvp/edit/:token" element={<RSVPEditPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );

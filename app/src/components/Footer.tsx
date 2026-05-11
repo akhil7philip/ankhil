@@ -33,14 +33,14 @@ export default function Footer() {
           With love, gratitude, and excitement — we can't wait to celebrate with you.
         </p>
 
-        {/* Hashtag */}
-        <p className="font-sans-body text-[13px] font-semibold uppercase tracking-[0.15em] text-[#C4A055]">
-          #AnkitaAndAkhil
+        {/* Privacy note */}
+        <p className="font-sans-body text-[11px] text-[#3B2F2F]/50 max-w-[420px] leading-relaxed mt-4">
+          Your information is used only for wedding planning and will not be shared.
         </p>
 
-        {/* Copyright */}
-        <p className="font-sans-body text-[10px] tracking-[0.1em] text-[#3B2F2F]/50 mt-4">
-          &copy; 2026 Ankita &amp; Akhil
+        {/* Copyright + last updated */}
+        <p className="font-sans-body text-[10px] tracking-[0.1em] text-[#3B2F2F]/50 mt-2">
+          &copy; 2026 Ankita &amp; Akhil &middot; Updated May 12, 2026
         </p>
       </ScrollReveal>
     </footer>

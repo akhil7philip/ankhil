@@ -28,9 +28,19 @@ const faqData: FAQItem[] = [
       'Please fill out the RSVP form with your accommodation preference. We can look into it and share accommodation details closer to the date. Note that we are unable to provide accommodation for everyone.',
   },
   {
-    question: 'How will the food be served?',
+    question: 'What food will be served?',
     answer:
-      'Please note that we will be providing only vegetarian options for the wedding in Kolkata. For the reception in Kerala, we will be providing vegetarian and non-vegetarian options, provided by separate caterers. If you have any dietary restrictions, please let us know in the RSVP form.',
+      'The Kolkata events are fully vegetarian. The Kerala reception will have both vegetarian and non-vegetarian options, served by separate caterers. If you have specific dietary restrictions or allergies, please let us know in the RSVP form.',
+  },
+  {
+    question: 'What about gifts?',
+    answer:
+      'Your presence is the greatest gift. Having you celebrate this day with us — in person or in spirit — is more than enough.',
+  },
+  {
+    question: 'Will there be a livestream?',
+    answer:
+      'For loved ones who can\'t travel, we plan to share a livestream link for the main ceremony closer to the date. If you\'d like to be sent the link, please let us know in the RSVP form or email us.',
   },
   {
     question: 'Who should I contact for more help?',
@@ -83,7 +93,7 @@ export default function FAQSection() {
     <section id="faq" className="bg-[#3B2F2F] py-[60px] md:py-[100px] px-5 md:px-10">
       <div className="max-w-[800px] mx-auto">
         <ScrollReveal>
-          <p className="section-label mb-3 md:mb-4">FAQ</p>
+          <p className="section-label-light mb-3 md:mb-4">FAQ</p>
           <h2 className="section-heading-light mb-10 md:mb-12">
             Questions & Answers
           </h2>

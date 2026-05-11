@@ -44,24 +44,38 @@ function wrap(n: number, min: number, max: number): number {
   return ((n - min + range) % range) + min;
 }
 
+// Seed used internally if no fallback prop provided
+const INTERNAL_SEED = '2026-07-01T12:00';
+
 interface DateTimePickerProps {
   value: string;
   onChange: (val: string) => void;
   disabled?: boolean;
+  /** Applied on first interaction when value is empty. Lets parents start with a blank input that snaps to a sensible date once the user engages. */
+  fallback?: string;
 }
 
-export default function DateTimePicker({ value, onChange, disabled = false }: DateTimePickerProps) {
-  const segs = parse(value);
+export default function DateTimePicker({ value, onChange, disabled = false, fallback }: DateTimePickerProps) {
+  const hasValue = value !== '';
+  const segs: Segs | null = hasValue ? parse(value) : null;
   const [active, setActive] = useState<SegmentKey | null>(null);
   const [buffer, setBuffer] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
 
+  function seedIfEmpty(): Segs {
+    const seed = parse(fallback || INTERNAL_SEED);
+    onChange(serialize(seed));
+    return seed;
+  }
+
   function update(changes: Partial<Segs>) {
-    onChange(serialize({ ...segs, ...changes }));
+    const base = segs ?? seedIfEmpty();
+    onChange(serialize({ ...base, ...changes }));
   }
 
   function activate(seg: SegmentKey) {
     if (disabled) return;
+    if (!segs) seedIfEmpty();
     setActive(seg);
     setBuffer('');
   }
@@ -92,13 +106,14 @@ export default function DateTimePicker({ value, onChange, disabled = false }: Da
   function handleArrow(delta: number) {
     if (!active) return;
     setBuffer('');
+    const base = segs ?? seedIfEmpty();
     switch (active) {
-      case 'day':    return update({ day:    wrap(segs.day    + delta, 1,  31) });
-      case 'month':  return update({ month:  wrap(segs.month  + delta, 1,  12) });
-      case 'year':   return update({ year:   Math.min(2099, Math.max(2000, segs.year + delta)) });
-      case 'hour':   return update({ hour:   wrap(segs.hour   + delta, 1,  12) });
-      case 'minute': return update({ minute: wrap(segs.minute + delta, 0,  59) });
-      case 'ampm':   return update({ ampm:   segs.ampm === 'AM' ? 'PM' : 'AM' });
+      case 'day':    return update({ day:    wrap(base.day    + delta, 1,  31) });
+      case 'month':  return update({ month:  wrap(base.month  + delta, 1,  12) });
+      case 'year':   return update({ year:   Math.min(2099, Math.max(2000, base.year + delta)) });
+      case 'hour':   return update({ hour:   wrap(base.hour   + delta, 1,  12) });
+      case 'minute': return update({ minute: wrap(base.minute + delta, 0,  59) });
+      case 'ampm':   return update({ ampm:   base.ampm === 'AM' ? 'PM' : 'AM' });
     }
   }
 
@@ -161,6 +176,16 @@ export default function DateTimePicker({ value, onChange, disabled = false }: Da
   }
 
   function display(seg: SegmentKey): string {
+    if (!segs) {
+      switch (seg) {
+        case 'day':    return 'DD';
+        case 'month':  return 'MM';
+        case 'year':   return 'YYYY';
+        case 'hour':   return 'HH';
+        case 'minute': return 'MM';
+        case 'ampm':   return '--';
+      }
+    }
     if (active === seg && seg === 'year' && buffer.length > 0) return buffer;
     switch (seg) {
       case 'day':    return pad(segs.day);
@@ -173,9 +198,11 @@ export default function DateTimePicker({ value, onChange, disabled = false }: Da
   }
 
   function segCls(seg: SegmentKey, extra = '') {
+    const placeholder = !segs;
     const base = `px-1 rounded-[1px] select-none transition-colors duration-150 ${extra}`;
+    const tone = placeholder ? 'text-[#3B2F2F]/35' : '';
     if (active === seg) return `${base} bg-[#C4A055] text-white`;
-    return disabled ? base : `${base} cursor-pointer hover:bg-[rgba(196,160,85,0.12)]`;
+    return disabled ? `${base} ${tone}` : `${base} ${tone} cursor-pointer hover:bg-[rgba(196,160,85,0.12)]`;
   }
 
   return (
