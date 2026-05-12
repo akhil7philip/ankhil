@@ -3,18 +3,36 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RSVPSection from './RSVPSection';
 
-// Mock the Supabase chain: from('rsvps').insert([...]).select('edit_token').single()
+// Mock two Supabase chains:
+//   from('rsvps').insert([...]).select('edit_token').single()
+//   from('site_config').select(...).maybeSingle()
 const singleFn = vi.fn();
 const selectFn = vi.fn(() => ({ single: singleFn }));
 const insertFn = vi.fn(() => ({ select: selectFn }));
 
+const configMaybeSingleFn = vi.fn();
+const configSelectFn = vi.fn(() => ({ maybeSingle: configMaybeSingleFn }));
+
 vi.mock('@/lib/supabase', () => ({
-  supabase: { from: () => ({ insert: insertFn }) },
+  supabase: {
+    from: (table: string) => {
+      if (table === 'site_config') return { select: configSelectFn };
+      return { insert: insertFn };
+    },
+  },
 }));
 
 vi.mock('gsap', () => ({
   default: {
     fromTo: vi.fn(),
+    registerPlugin: vi.fn(),
+  },
+}));
+
+vi.mock('gsap/ScrollTrigger', () => ({
+  ScrollTrigger: {
+    refresh: vi.fn(),
+    create: vi.fn(() => ({ kill: vi.fn() })),
   },
 }));
 
@@ -27,7 +45,13 @@ describe('RSVPSection', () => {
     singleFn.mockReset();
     selectFn.mockClear();
     insertFn.mockClear();
+    configMaybeSingleFn.mockReset();
+    configSelectFn.mockClear();
     singleFn.mockResolvedValue({ data: { edit_token: 'test-token-1234' }, error: null });
+    configMaybeSingleFn.mockResolvedValue({
+      data: { rsvp_open: true, rsvp_closed_message: null },
+      error: null,
+    });
   });
 
   afterEach(() => {
@@ -207,6 +231,25 @@ describe('RSVPSection', () => {
       expect(screen.getByText(/Please enter your expected arrival/i)).toBeInTheDocument();
       expect(screen.getByText(/Please enter your expected departure/i)).toBeInTheDocument();
     });
+  });
+
+  it('renders the closed card when site_config.rsvp_open is false', async () => {
+    configMaybeSingleFn.mockResolvedValue({
+      data: {
+        rsvp_open: false,
+        rsvp_closed_message: 'We are no longer taking RSVPs for this event.',
+      },
+      error: null,
+    });
+
+    render(<RSVPSection />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Thank You for Your Interest/i)).toBeInTheDocument();
+    });
+    expect(screen.getByText(/We are no longer taking RSVPs/i)).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Your full name')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Submit RSVP/i })).not.toBeInTheDocument();
   });
 
   it('"Use suggested" chip fills in the suggested arrival date', async () => {

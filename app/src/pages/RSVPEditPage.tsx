@@ -71,9 +71,19 @@ type LoadState =
   | { kind: 'not-found' }
   | { kind: 'error'; message: string };
 
+// Matches the key in AdminPage. When this is set in sessionStorage the
+// current tab/session belongs to the authenticated admin, so the back
+// link should return to /admin instead of the public home page.
+const ADMIN_AUTH_KEY = 'ankhil-admin-auth';
+
 export default function RSVPEditPage() {
   const { token } = useParams<{ token: string }>();
   const [load, setLoad] = useState<LoadState>({ kind: 'loading' });
+  const isAdmin =
+    typeof window !== 'undefined' &&
+    window.sessionStorage.getItem(ADMIN_AUTH_KEY) === 'true';
+  const backHref = isAdmin ? '/admin' : '/';
+  const backLabel = isAdmin ? 'admin' : 'home';
 
   useEffect(() => {
     let cancelled = false;
@@ -120,10 +130,10 @@ export default function RSVPEditPage() {
       <div className="max-w-[800px] mx-auto">
         <div className="mb-8 md:mb-12">
           <Link
-            to="/"
+            to={backHref}
             className="font-sans-body text-xs font-semibold uppercase tracking-[0.15em] text-white/60 hover:text-[#C4A055] transition-colors duration-200"
           >
-            &larr; Back to home
+            &larr; Back to {backLabel}
           </Link>
         </div>
 
@@ -156,10 +166,10 @@ export default function RSVPEditPage() {
               <a href="mailto:support@ankhil.club" className="underline hover:text-[#C4A055]">support@ankhil.club</a>.
             </p>
             <Link
-              to="/#rsvp"
+              to={isAdmin ? '/admin' : '/#rsvp'}
               className="inline-block mt-6 bg-[#3B2F2F] text-white font-sans-body text-xs font-semibold uppercase tracking-[0.12em] px-8 py-3 hover:bg-[#C4A055] transition-colors duration-300"
             >
-              Submit a new RSVP
+              {isAdmin ? 'Back to admin' : 'Submit a new RSVP'}
             </Link>
           </div>
         )}

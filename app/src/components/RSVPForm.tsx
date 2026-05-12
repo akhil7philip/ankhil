@@ -1,6 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import DateTimePicker from '@/components/DateTimePicker';
+
+gsap.registerPlugin(ScrollTrigger);
 
 export interface RsvpFormData {
   fullName: string;
@@ -318,6 +321,12 @@ export default function RSVPForm({ mode, initial, onSubmit }: RSVPFormProps) {
   // nav). The form unmounts and the page shrinks meaningfully, so without
   // this the user's previous scroll position can leave the confirmation
   // off-screen entirely.
+  //
+  // Also force ScrollTrigger to recompute -- the form (~1500px) -> success
+  // card (~300px) swap leaves every ScrollReveal *below* this section with
+  // stale cached positions. Without the refresh, a user who hadn't scrolled
+  // past Travel/FAQ/Gallery/Footer pre-submit would never see them reveal,
+  // because their cached trigger zones now sit below the actual page bottom.
   useEffect(() => {
     if (state !== 'success' || !successRef.current) return;
     const successEl = successRef.current;
@@ -332,6 +341,11 @@ export default function RSVPForm({ mode, initial, onSubmit }: RSVPFormProps) {
       { opacity: 0, y: 20 },
       { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }
     );
+
+    const rafId = requestAnimationFrame(() => {
+      ScrollTrigger.refresh();
+    });
+    return () => cancelAnimationFrame(rafId);
   }, [state]);
 
   const isSubmitting = state === 'submitting';
