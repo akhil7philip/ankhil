@@ -81,7 +81,7 @@ export default function FamiliesSection() {
             <FamilyCard
               ledBy="Parents of the Groom"
               parents={['Elsamma Binny', 'Binny Philip']}
-              siblings={['Jerrin George', 'Amy Binny Philip', 'Allen Emmanuel Binny']}
+              siblings={['Jerrin Thomas George', 'Amy Binny Philip', 'Allen Emmanuel Binny']}
               accentColor="#3D6B5B"
             />
           </ScrollReveal>
