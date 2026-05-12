@@ -121,10 +121,16 @@ export default function HeroSection({ lenis }: HeroSectionProps) {
         }}
       />
 
-      {/* Dark overlay */}
+      {/* Dark overlay — vertical gradient: lighter at top/bottom so the tree
+          silhouette and water stay visible, strongest mid-band where the
+          names + dates + countdown sit. */}
       <div
         ref={overlayRef}
-        className="absolute inset-0 z-[1] bg-[rgba(59,47,47,0.25)]"
+        className="absolute inset-0 z-[1]"
+        style={{
+          backgroundImage:
+            'linear-gradient(180deg, rgba(59,47,47,0.20) 0%, rgba(59,47,47,0.55) 45%, rgba(59,47,47,0.25) 90%)',
+        }}
       />
 
       {/* Warm overlay */}
@@ -136,7 +142,7 @@ export default function HeroSection({ lenis }: HeroSectionProps) {
         <p
           ref={labelRef}
           className="font-sans-body text-xs font-semibold uppercase tracking-[0.18em] text-white mb-4"
-          style={{ textShadow: '0 2px 12px rgba(59,47,47,0.55)' }}
+          style={{ textShadow: '0 2px 10px rgba(0,0,0,0.55)' }}
         >
           We're Getting Married
         </p>
@@ -145,19 +151,19 @@ export default function HeroSection({ lenis }: HeroSectionProps) {
         <div ref={namesRef}>
           <h1
             className="font-serif-display text-[32px] md:text-[48px] text-white leading-[1.1] tracking-[-0.02em]"
-            style={{ textShadow: '0 2px 24px rgba(59,47,47,0.3)' }}
+            style={{ textShadow: '0 2px 10px rgba(0,0,0,0.6)' }}
           >
             Ankita Agarwal
           </h1>
           <p
             className="font-serif-display text-[28px] md:text-[40px] text-white leading-[1.1] tracking-[-0.02em] my-1"
-            style={{ textShadow: '0 2px 24px rgba(59,47,47,0.3)' }}
+            style={{ textShadow: '0 2px 10px rgba(0,0,0,0.6)' }}
           >
             &amp;
           </p>
           <h1
             className="font-serif-display text-[32px] md:text-[48px] text-white leading-[1.1] tracking-[-0.02em]"
-            style={{ textShadow: '0 2px 24px rgba(59,47,47,0.3)' }}
+            style={{ textShadow: '0 2px 10px rgba(0,0,0,0.6)' }}
           >
             Akhil Philip
           </h1>
@@ -172,10 +178,16 @@ export default function HeroSection({ lenis }: HeroSectionProps) {
 
         {/* Dates */}
         <div ref={datesRef}>
-          <p className="font-sans-body text-sm md:text-base text-white/90 leading-relaxed">
+          <p
+            className="font-sans-body text-sm md:text-base text-white/90 leading-relaxed"
+            style={{ textShadow: '0 1px 8px rgba(0,0,0,0.5)' }}
+          >
             Kolkata, India &bull; July 6 &ndash; 8, 2026
           </p>
-          <p className="font-sans-body text-sm md:text-base text-white/70 leading-relaxed mt-1">
+          <p
+            className="font-sans-body text-sm md:text-base text-white/80 leading-relaxed mt-1"
+            style={{ textShadow: '0 1px 8px rgba(0,0,0,0.5)' }}
+          >
             Kerala Reception &bull; Pala / Kottayam &bull; July 18 &ndash; 19, 2026
           </p>
         </div>
@@ -208,7 +220,8 @@ export default function HeroSection({ lenis }: HeroSectionProps) {
         <button
           ref={storyLinkRef}
           onClick={() => handleScrollTo('story')}
-          className="group mt-5 md:mt-6 font-sans-body text-xs font-semibold uppercase tracking-[0.15em] text-white/80 hover:text-[#C4A055] transition-colors duration-300"
+          className="group mt-5 md:mt-6 font-sans-body text-xs font-semibold uppercase tracking-[0.15em] text-white/90 hover:text-[#C4A055] transition-colors duration-300"
+          style={{ textShadow: '0 1px 8px rgba(0,0,0,0.55)' }}
         >
           Read Our Story
           <span className="inline-block ml-1.5 transition-transform duration-300 group-hover:translate-x-1">
