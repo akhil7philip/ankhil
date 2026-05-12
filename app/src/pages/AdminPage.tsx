@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 interface RSVP {
   id: string;
   created_at: string;
+  edit_token: string;
   full_name: string;
   phone: string;
   email: string | null;
@@ -74,6 +75,12 @@ function BoolBadge({ val }: { val: boolean | null }) {
   return <span className="text-[10px] text-[#3B2F2F]/40">—</span>;
 }
 
+interface SiteConfig {
+  rsvp_open: boolean;
+  rsvp_closed_message: string | null;
+  updated_at: string;
+}
+
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return sessionStorage.getItem(ADMIN_AUTH_KEY) === 'true';
@@ -83,6 +90,9 @@ export default function AdminPage() {
   const [rsvps, setRsvps] = useState<RSVP[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [config, setConfig] = useState<SiteConfig | null>(null);
+  const [configBusy, setConfigBusy] = useState(false);
+  const [configError, setConfigError] = useState<string | null>(null);
 
   const expectedPassword = import.meta.env.VITE_ADMIN_PASSWORD || 'ankhil2026';
 
@@ -121,6 +131,58 @@ export default function AdminPage() {
     };
     fetchData();
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const fetchConfig = async () => {
+      const { data, error } = await supabase
+        .from('site_config')
+        .select('rsvp_open, rsvp_closed_message, updated_at')
+        .maybeSingle();
+      if (error) {
+        setConfigError(error.message);
+      } else if (data) {
+        setConfig(data);
+      }
+    };
+    fetchConfig();
+  }, [isAuthenticated]);
+
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDelete = async (rsvp: RSVP) => {
+    setDeleteBusyId(rsvp.id);
+    setDeleteError(null);
+    const { error } = await supabase.from('rsvps').delete().eq('id', rsvp.id);
+    setDeleteBusyId(null);
+    if (error) {
+      setDeleteError(`Could not delete ${rsvp.full_name}: ${error.message}`);
+      return;
+    }
+    setRsvps((prev) => prev.filter((r) => r.id !== rsvp.id));
+    setPendingDeleteId(null);
+  };
+
+  const toggleRsvpOpen = async () => {
+    if (!config) return;
+    const next = !config.rsvp_open;
+    setConfigBusy(true);
+    setConfigError(null);
+    const { data, error } = await supabase
+      .from('site_config')
+      .update({ rsvp_open: next })
+      .eq('id', true)
+      .select('rsvp_open, rsvp_closed_message, updated_at')
+      .maybeSingle();
+    if (error) {
+      setConfigError(error.message);
+    } else if (data) {
+      setConfig(data);
+    }
+    setConfigBusy(false);
+  };
 
   if (!isAuthenticated) {
     return (
@@ -204,6 +266,64 @@ export default function AdminPage() {
       {/* Content */}
       <main className="px-5 md:px-10 py-8">
         <div className="max-w-[1400px] mx-auto">
+          {/* Site config card */}
+          <div className="mb-6 p-5 bg-white border border-[rgba(59,47,47,0.1)] rounded-[2px] flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="min-w-0">
+              <p className="font-sans-body text-[11px] font-semibold uppercase tracking-[0.12em] text-[#3B2F2F]/60 mb-1">
+                RSVP Form
+              </p>
+              {config ? (
+                <>
+                  <p className="font-sans-body text-sm text-[#3B2F2F]">
+                    {config.rsvp_open ? (
+                      <>
+                        <span className="inline-block w-2 h-2 rounded-full bg-[#3D6B5B] mr-2 align-middle" />
+                        Open &mdash; guests can submit new RSVPs.
+                      </>
+                    ) : (
+                      <>
+                        <span className="inline-block w-2 h-2 rounded-full bg-[#7B2D41] mr-2 align-middle" />
+                        Closed &mdash; new submissions blocked; existing guests can still edit via their token link.
+                      </>
+                    )}
+                  </p>
+                  <p className="font-sans-body text-[11px] text-[#3B2F2F]/50 mt-1">
+                    Last changed {formatDate(config.updated_at)}
+                  </p>
+                </>
+              ) : configError ? (
+                <p className="font-sans-body text-xs text-[#7B2D41]">
+                  Could not load site config: {configError}
+                </p>
+              ) : (
+                <p className="font-sans-body text-xs text-[#3B2F2F]/50">Loading site config...</p>
+              )}
+            </div>
+            {config && (
+              <button
+                onClick={toggleRsvpOpen}
+                disabled={configBusy}
+                className={`font-sans-body text-xs font-semibold uppercase tracking-[0.12em] px-6 py-3 transition-colors duration-300 disabled:opacity-60 self-start md:self-auto whitespace-nowrap ${
+                  config.rsvp_open
+                    ? 'bg-[#7B2D41] text-white hover:bg-[#3B2F2F]'
+                    : 'bg-[#3D6B5B] text-white hover:bg-[#3B2F2F]'
+                }`}
+              >
+                {configBusy
+                  ? 'Saving...'
+                  : config.rsvp_open
+                  ? 'Close RSVPs'
+                  : 'Open RSVPs'}
+              </button>
+            )}
+          </div>
+
+          {deleteError && (
+            <div className="mb-4 p-3 bg-[#7B2D41]/10 border border-[#7B2D41]/30 rounded-[2px]">
+              <p className="font-sans-body text-sm text-[#7B2D41]">{deleteError}</p>
+            </div>
+          )}
+
           {loading && (
             <p className="font-sans-body text-sm text-[#3B2F2F]/70">Loading submissions...</p>
           )}
@@ -235,6 +355,7 @@ export default function AdminPage() {
                     <th className="font-sans-body text-[11px] font-semibold uppercase tracking-[0.12em] text-[#3B2F2F]/70 py-3 pr-4 min-w-[220px]">Kerala</th>
                     <th className="font-sans-body text-[11px] font-semibold uppercase tracking-[0.12em] text-[#3B2F2F]/70 py-3 pr-4 max-w-[180px]">Notes</th>
                     <th className="font-sans-body text-[11px] font-semibold uppercase tracking-[0.12em] text-[#3B2F2F]/70 py-3 pr-4">Submitted</th>
+                    <th className="font-sans-body text-[11px] font-semibold uppercase tracking-[0.12em] text-[#3B2F2F]/70 py-3 pr-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -296,6 +417,47 @@ export default function AdminPage() {
                       </td>
                       <td className="font-sans-body text-xs text-[#3B2F2F]/50 py-3 pr-4 whitespace-nowrap">
                         {formatDate(r.created_at)}
+                      </td>
+                      <td className="py-3 pr-4 whitespace-nowrap text-right">
+                        {pendingDeleteId === r.id ? (
+                          <div className="inline-flex items-center gap-2">
+                            <span className="font-sans-body text-[11px] text-[#3B2F2F]/70 mr-1">Delete?</span>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(r)}
+                              disabled={deleteBusyId === r.id}
+                              className="font-sans-body text-[11px] font-semibold uppercase tracking-[0.1em] bg-[#7B2D41] text-white px-3 py-1.5 hover:bg-[#3B2F2F] transition-colors duration-200 disabled:opacity-60"
+                            >
+                              {deleteBusyId === r.id ? '...' : 'Confirm'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPendingDeleteId(null)}
+                              disabled={deleteBusyId === r.id}
+                              className="font-sans-body text-[11px] font-semibold uppercase tracking-[0.1em] text-[#3B2F2F]/70 hover:text-[#3B2F2F] px-2 py-1.5 transition-colors duration-200"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="inline-flex items-center gap-3">
+                            <a
+                              href={`/rsvp/edit/${r.edit_token}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-sans-body text-[11px] font-semibold uppercase tracking-[0.1em] text-[#3D6B5B] hover:text-[#3B2F2F] transition-colors duration-200"
+                            >
+                              Edit ↗
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => setPendingDeleteId(r.id)}
+                              className="font-sans-body text-[11px] font-semibold uppercase tracking-[0.1em] text-[#7B2D41] hover:text-[#3B2F2F] transition-colors duration-200"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
