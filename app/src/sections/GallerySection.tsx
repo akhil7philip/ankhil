@@ -14,16 +14,32 @@ const galleryImages: GalleryImage[] = [
   { src: '/images/auto_ride.jpg', alt: 'A selfie during an auto ride', aspectRatio: '1/1' },
 ];
 
-export default function GallerySection() {
+interface GallerySectionProps {
+  /** When true, the section renders on dark-brown background with light
+   * heading/label. Used to preserve the cream/dark alternation when the
+   * FAQ section directly above is hidden — otherwise Travel → Gallery →
+   * Footer would all be cream. */
+  darkBackground?: boolean;
+}
+
+export default function GallerySection({ darkBackground = false }: GallerySectionProps = {}) {
   const [isExpanded, setIsExpanded] = useState(false);
   const remainingCount = Math.max(0, galleryImages.length - 2);
 
+  const sectionBg = darkBackground ? 'bg-[#3B2F2F]' : 'bg-[#F5F1EB]';
+  const labelClass = darkBackground ? 'section-label-light' : 'section-label';
+  const headingClass = darkBackground ? 'section-heading-light' : 'section-heading';
+  // Mobile "View all" button — needs an inverted treatment on dark backgrounds.
+  const expandButtonClass = darkBackground
+    ? 'px-6 py-2.5 border border-white/60 text-white text-sm tracking-widest uppercase rounded-[4px] transition-colors duration-300 hover:bg-white hover:text-[#3B2F2F]'
+    : 'px-6 py-2.5 border border-[#3B2F2F] text-[#3B2F2F] text-sm tracking-widest uppercase rounded-[4px] transition-colors duration-300 hover:bg-[#3B2F2F] hover:text-white';
+
   return (
-    <section id="gallery" className="bg-[#F5F1EB] py-[60px] md:py-[100px] px-5 md:px-10">
+    <section id="gallery" className={`${sectionBg} py-[60px] md:py-[100px] px-5 md:px-10`}>
       <div className="max-w-[1200px] mx-auto">
         <ScrollReveal>
-          <p className="section-label mb-3 md:mb-4">Gallery</p>
-          <h2 className="section-heading mb-10 md:mb-12">Moments So Far</h2>
+          <p className={`${labelClass} mb-3 md:mb-4`}>Gallery</p>
+          <h2 className={`${headingClass} mb-10 md:mb-12`}>Moments So Far</h2>
         </ScrollReveal>
 
         {/* Masonry grid using CSS columns */}
@@ -57,7 +73,7 @@ export default function GallerySection() {
             <button
               type="button"
               onClick={() => setIsExpanded((p) => !p)}
-              className="px-6 py-2.5 border border-[#3B2F2F] text-[#3B2F2F] text-sm tracking-widest uppercase rounded-[4px] transition-colors duration-300 hover:bg-[#3B2F2F] hover:text-white"
+              className={expandButtonClass}
             >
               {isExpanded ? 'Show less' : `View all (+${remainingCount})`}
             </button>
