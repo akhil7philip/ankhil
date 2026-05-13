@@ -165,7 +165,7 @@ export default function HeroSection({ lenis }: HeroSectionProps) {
             className="font-serif-display text-[32px] md:text-[48px] text-white leading-[1.1] tracking-[-0.02em]"
             style={{ textShadow: '0 2px 10px rgba(0,0,0,0.6)' }}
           >
-            Akhil Philip
+            Akhil Binny Philip
           </h1>
         </div>
 
