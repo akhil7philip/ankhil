@@ -58,8 +58,7 @@ const kolkataEventsBase: EventItem[] = [
     name: 'Musical Night',
     time: '7:00 PM onwards',
     dressCode: 'Shades of gold and silver',
-    notes:
-      'An evening of music and dance, with family and friends performing for the couple.',
+    notes: 'An evening of music and dance, with family and friends.',
     city: 'kolkata',
     iconType: 'sangeet',
     start: '2026-07-07T19:00:00+05:30',
@@ -92,8 +91,8 @@ const kolkataEventsBase: EventItem[] = [
 
 const keralaEventsBase: EventItem[] = [
   {
-    date: 'July 18',
-    name: 'Wedding Reception',
+    date: 'July 25',
+    name: 'Pala Reception',
     time: '6:00 PM onwards',
     notes:
       'A wedding reception with the couple, both families, friends and hometown community.',
@@ -406,7 +405,7 @@ export default function EventsSection() {
         {/* Kolkata Events */}
         <ScrollReveal delay={0.1}>
           <h3 className="font-serif-display text-lg md:text-[22px] uppercase tracking-[0.05em] text-[#3B2F2F] mb-6 md:mb-8">
-            Kolkata, India &bull; July 6 &ndash; 8, 2026
+            Kolkata, West Bengal &bull; July 6 &ndash; 8, 2026
           </h3>
         </ScrollReveal>
 
@@ -432,18 +431,11 @@ export default function EventsSection() {
           </div>
         </div>
 
-        {/* Kerala Divider */}
-        <ScrollReveal className="my-12 md:my-16">
-          <div className="flex items-center justify-center gap-4">
-            <div className="w-[60px] h-px bg-[#C4A055]" />
-            <h3 className="font-serif-display text-2xl md:text-[28px] uppercase tracking-[0.1em] text-[#3D6B5B]">
-              Kerala
-            </h3>
-            <div className="w-[60px] h-px bg-[#C4A055]" />
-          </div>
-          <p className="text-center font-serif-display text-base md:text-[22px] uppercase tracking-[0.05em] text-[#3D6B5B] mt-3">
-            Pala, Kerala &bull; July 18, 2026
-          </p>
+        {/* Pala / Kerala Heading — left-aligned to match the Kolkata heading */}
+        <ScrollReveal delay={0.1}>
+          <h3 className="font-serif-display text-lg md:text-[22px] uppercase tracking-[0.05em] text-[#3D6B5B] mt-12 md:mt-16 mb-6 md:mb-8">
+            Pala, Kerala &bull; July 25, 2026
+          </h3>
         </ScrollReveal>
 
         {/* Kerala Events */}

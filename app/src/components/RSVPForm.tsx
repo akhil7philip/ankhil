@@ -17,11 +17,13 @@ export interface RsvpFormData {
   kolkataAccommodation: string;
   kolkataAirportPickup: string;
   kolkataTrainPickup: string;
+  kolkataTrainPickupStation: string;
   kolkataArrival: string;
   kolkataDeparture: string;
   keralaAccommodation: string;
   keralaAirportPickup: string;
   keralaTrainPickup: string;
+  keralaTrainPickupStation: string;
   keralaArrival: string;
   keralaDeparture: string;
   specialNotes: string;
@@ -40,12 +42,14 @@ export interface RsvpPayload {
   kolkata_accommodation: boolean | null;
   kolkata_airport_pickup: boolean | null;
   kolkata_train_pickup: boolean | null;
+  kolkata_train_pickup_station: string | null;
   attending_kerala: boolean;
   kerala_arrival: string | null;
   kerala_departure: string | null;
   kerala_accommodation: boolean | null;
   kerala_airport_pickup: boolean | null;
   kerala_train_pickup: boolean | null;
+  kerala_train_pickup_station: string | null;
   special_notes: string | null;
 }
 
@@ -60,10 +64,12 @@ export interface RSVPFormProps {
   /** When true, the Kerala details panel includes a Veg/Non-Veg radio. The
    * field is required only when the guest is also attending Kerala. */
   keralaNonVeg?: boolean;
-  /** Configured pickup stations — shown in the form helper text so guests
-   * know where they'll be picked up from. Defaults are sensible fallbacks. */
-  kolkataRailwayStation?: string;
-  keralaRailwayStation?: string;
+  /** Configured pickup stations. When more than one is listed for a city,
+   * the form renders a dropdown after the guest says "yes" to train pickup
+   * so they can choose. When exactly one is listed, the form auto-records
+   * that one. When empty, no train-pickup helper text is shown. */
+  kolkataRailwayStations?: string[];
+  keralaRailwayStations?: string[];
 }
 
 const emptyForm: RsvpFormData = {
@@ -81,11 +87,13 @@ const emptyForm: RsvpFormData = {
   kolkataAccommodation: '',
   kolkataAirportPickup: '',
   kolkataTrainPickup: '',
+  kolkataTrainPickupStation: '',
   kolkataArrival: '',
   kolkataDeparture: '',
   keralaAccommodation: '',
   keralaAirportPickup: '',
   keralaTrainPickup: '',
+  keralaTrainPickupStation: '',
   keralaArrival: '',
   keralaDeparture: '',
   specialNotes: '',
@@ -235,25 +243,35 @@ function buildPayload(form: RsvpFormData, kolkataTravel: boolean, keralaTravel: 
     kolkata_accommodation: form.attendingKolkata ? toBool(form.kolkataAccommodation) : null,
     kolkata_airport_pickup: form.attendingKolkata ? toBool(form.kolkataAirportPickup) : null,
     kolkata_train_pickup: form.attendingKolkata ? toBool(form.kolkataTrainPickup) : null,
+    kolkata_train_pickup_station:
+      form.attendingKolkata && isYes(form.kolkataTrainPickup)
+        ? form.kolkataTrainPickupStation.trim() || null
+        : null,
     attending_kerala: form.attendingKerala,
     kerala_arrival: keralaTravel ? toIso(form.keralaArrival) : null,
     kerala_departure: keralaTravel ? toIso(form.keralaDeparture) : null,
     kerala_accommodation: form.attendingKerala ? toBool(form.keralaAccommodation) : null,
     kerala_airport_pickup: form.attendingKerala ? toBool(form.keralaAirportPickup) : null,
     kerala_train_pickup: form.attendingKerala ? toBool(form.keralaTrainPickup) : null,
+    kerala_train_pickup_station:
+      form.attendingKerala && isYes(form.keralaTrainPickup)
+        ? form.keralaTrainPickupStation.trim() || null
+        : null,
     special_notes: form.specialNotes.trim() || null,
   };
 }
 
 type State = 'idle' | 'submitting' | 'success' | 'error';
 
+const EMPTY_STATIONS: string[] = [];
+
 export default function RSVPForm({
   mode,
   initial,
   onSubmit,
   keralaNonVeg = false,
-  kolkataRailwayStation,
-  keralaRailwayStation,
+  kolkataRailwayStations = EMPTY_STATIONS,
+  keralaRailwayStations = EMPTY_STATIONS,
 }: RSVPFormProps) {
   const [form, setForm] = useState<RsvpFormData>({ ...emptyForm, ...initial });
   const [errors, setErrors] = useState<Partial<Record<keyof RsvpFormData, string>>>({});
@@ -319,6 +337,25 @@ export default function RSVPForm({
     }
     if (keralaNonVeg && form.attendingKerala && !form.dietary) {
       newErrors.dietary = 'Please select your meal preference for the reception';
+    }
+
+    // Train station selection — required only when the user opted in AND
+    // the city has more than one configured station.
+    if (
+      form.attendingKolkata &&
+      isYes(form.kolkataTrainPickup) &&
+      kolkataRailwayStations.length > 1 &&
+      !form.kolkataTrainPickupStation
+    ) {
+      newErrors.kolkataTrainPickupStation = 'Please choose your pickup station';
+    }
+    if (
+      form.attendingKerala &&
+      isYes(form.keralaTrainPickup) &&
+      keralaRailwayStations.length > 1 &&
+      !form.keralaTrainPickupStation
+    ) {
+      newErrors.keralaTrainPickupStation = 'Please choose your pickup station';
     }
     if (kolkataNeedsTravelInfo) {
       if (!form.kolkataArrival) newErrors.kolkataArrival = 'Please enter your expected arrival';
@@ -573,9 +610,9 @@ export default function RSVPForm({
             </div>
             <div>
               <span className="font-sans-body text-[15px] text-[#3B2F2F] group-hover:text-[#C4A055] transition-colors duration-200">
-                Kerala reception
+                Pala reception
               </span>
-              <p className="font-sans-body text-xs text-[#3B2F2F]/60">July 18 – 19, 2026 · Pala / Kottayam</p>
+              <p className="font-sans-body text-xs text-[#3B2F2F]/60">July 25, 2026 · Pala / Kottayam</p>
             </div>
           </label>
         </div>
@@ -652,11 +689,41 @@ export default function RSVPForm({
               onChange={(val) => updateField('kolkataTrainPickup', val)}
               disabled={isSubmitting}
             />
-            {kolkataRailwayStation && (
+            {kolkataRailwayStations.length > 0 && (
               <p className="font-sans-body text-[11px] text-[#3B2F2F]/55 mt-2">
-                If yes, we&rsquo;ll arrange pickup from{' '}
-                <span className="text-[#3B2F2F]/75 font-semibold">{kolkataRailwayStation}</span>.
+                {kolkataRailwayStations.length === 1 ? (
+                  <>
+                    If yes, we&rsquo;ll arrange pickup from{' '}
+                    <span className="text-[#3B2F2F]/75 font-semibold">{kolkataRailwayStations[0]}</span>.
+                  </>
+                ) : (
+                  <>
+                    Nearest stations:{' '}
+                    <span className="text-[#3B2F2F]/75 font-semibold">{kolkataRailwayStations.join(', ')}</span>.
+                  </>
+                )}
               </p>
+            )}
+            {isYes(form.kolkataTrainPickup) && kolkataRailwayStations.length > 1 && (
+              <div className="mt-3">
+                <label className={labelClasses}>Pickup station *</label>
+                <select
+                  className={inputClasses + ' appearance-none cursor-pointer'}
+                  value={form.kolkataTrainPickupStation}
+                  onChange={(e) => updateField('kolkataTrainPickupStation', e.target.value)}
+                  disabled={isSubmitting}
+                >
+                  <option value="">Choose a station...</option>
+                  {kolkataRailwayStations.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+                {errors.kolkataTrainPickupStation && (
+                  <p className="text-xs text-[#7B2D41] mt-1">{errors.kolkataTrainPickupStation}</p>
+                )}
+              </div>
             )}
           </div>
 
@@ -719,7 +786,7 @@ export default function RSVPForm({
         <div className="mb-8 p-6 md:p-8 bg-[rgba(61,107,91,0.06)] rounded-[4px] border border-[rgba(61,107,91,0.15)]">
           <h3 className="font-serif-display text-lg text-[#3B2F2F] mb-5 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#3D6B5B]" />
-            Kerala Details
+            Pala Details
           </h3>
 
           {keralaNonVeg && (
@@ -741,7 +808,7 @@ export default function RSVPForm({
                 disabled={isSubmitting}
               />
               <p className="font-sans-body text-[11px] text-[#3B2F2F]/55 mt-2">
-                Kolkata events are fully vegetarian. The Kerala reception has both options.
+                Kolkata events are fully vegetarian. The Pala reception has both options.
               </p>
               {errors.dietary && (
                 <p className="text-xs text-[#7B2D41] mt-1">{errors.dietary}</p>
@@ -780,10 +847,41 @@ export default function RSVPForm({
               onChange={(val) => updateField('keralaTrainPickup', val)}
               disabled={isSubmitting}
             />
-            {keralaRailwayStation && (
+            {keralaRailwayStations.length > 0 && (
               <p className="font-sans-body text-[11px] text-[#3B2F2F]/55 mt-2">
-                If yes, we&rsquo;ll arrange pickup from <span className="text-[#3B2F2F]/75 font-semibold">{keralaRailwayStation}</span>.
+                {keralaRailwayStations.length === 1 ? (
+                  <>
+                    If yes, we&rsquo;ll arrange pickup from{' '}
+                    <span className="text-[#3B2F2F]/75 font-semibold">{keralaRailwayStations[0]}</span>.
+                  </>
+                ) : (
+                  <>
+                    Nearest stations:{' '}
+                    <span className="text-[#3B2F2F]/75 font-semibold">{keralaRailwayStations.join(', ')}</span>.
+                  </>
+                )}
               </p>
+            )}
+            {isYes(form.keralaTrainPickup) && keralaRailwayStations.length > 1 && (
+              <div className="mt-3">
+                <label className={labelClasses}>Pickup station *</label>
+                <select
+                  className={inputClasses + ' appearance-none cursor-pointer'}
+                  value={form.keralaTrainPickupStation}
+                  onChange={(e) => updateField('keralaTrainPickupStation', e.target.value)}
+                  disabled={isSubmitting}
+                >
+                  <option value="">Choose a station...</option>
+                  {keralaRailwayStations.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+                {errors.keralaTrainPickupStation && (
+                  <p className="text-xs text-[#7B2D41] mt-1">{errors.keralaTrainPickupStation}</p>
+                )}
+              </div>
             )}
           </div>
 

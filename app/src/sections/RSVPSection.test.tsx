@@ -78,7 +78,7 @@ describe('RSVPSection', () => {
 
     await userEvent.type(screen.getByPlaceholderText('Your full name'), 'Test User');
     await userEvent.type(screen.getByPlaceholderText('+91-XXXXXXXXXX'), '9999999999');
-    await userEvent.click(screen.getByLabelText(/Kerala reception/i));
+    await userEvent.click(screen.getByLabelText(/Pala reception/i));
 
     fireEvent.click(screen.getByRole('button', { name: /Submit RSVP/i }));
 
@@ -94,7 +94,7 @@ describe('RSVPSection', () => {
   it('renders city selection checkboxes', () => {
     render(<RSVPSection />);
     expect(screen.getByLabelText(/Kolkata celebrations/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Kerala reception/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Pala reception/i)).toBeInTheDocument();
   });
 
   it('shows error when submitting without required fields', async () => {
@@ -123,9 +123,9 @@ describe('RSVPSection', () => {
   it('shows Kerala section when Kerala checkbox is checked', async () => {
     render(<RSVPSection />);
 
-    await userEvent.click(screen.getByLabelText(/Kerala reception/i));
+    await userEvent.click(screen.getByLabelText(/Pala reception/i));
 
-    expect(screen.getByText(/Kerala Details/i)).toBeInTheDocument();
+    expect(screen.getByText(/Pala Details/i)).toBeInTheDocument();
   });
 
   it('requires at least one Kolkata event when attending Kolkata', async () => {
@@ -147,7 +147,7 @@ describe('RSVPSection', () => {
 
     await userEvent.type(screen.getByPlaceholderText('Your full name'), 'Test User');
     await userEvent.type(screen.getByPlaceholderText('+91-XXXXXXXXXX'), '9999999999');
-    await userEvent.click(screen.getByLabelText(/Kerala reception/i));
+    await userEvent.click(screen.getByLabelText(/Pala reception/i));
 
     fireEvent.click(screen.getByRole('button', { name: /Submit RSVP/i }));
 
@@ -175,7 +175,7 @@ describe('RSVPSection', () => {
 
     await userEvent.type(screen.getByPlaceholderText('Your full name'), 'Test User');
     await userEvent.type(screen.getByPlaceholderText('+91-XXXXXXXXXX'), '9999999999');
-    await userEvent.click(screen.getByLabelText(/Kerala reception/i));
+    await userEvent.click(screen.getByLabelText(/Pala reception/i));
 
     fireEvent.click(screen.getByRole('button', { name: /Submit RSVP/i }));
 
@@ -254,7 +254,7 @@ describe('RSVPSection', () => {
     // Radio should not yet exist before Kerala is selected
     expect(screen.queryByText(/Meal preference for the reception/i)).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByLabelText(/Kerala reception/i));
+    await userEvent.click(screen.getByLabelText(/Pala reception/i));
 
     expect(screen.getByText(/Meal preference for the reception/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^Vegetarian$/i)).toBeInTheDocument();
@@ -275,7 +275,7 @@ describe('RSVPSection', () => {
 
     await userEvent.type(screen.getByPlaceholderText('Your full name'), 'Test User');
     await userEvent.type(screen.getByPlaceholderText('+91-XXXXXXXXXX'), '9999999999');
-    await userEvent.click(screen.getByLabelText(/Kerala reception/i));
+    await userEvent.click(screen.getByLabelText(/Pala reception/i));
 
     fireEvent.click(screen.getByRole('button', { name: /Submit RSVP/i }));
 

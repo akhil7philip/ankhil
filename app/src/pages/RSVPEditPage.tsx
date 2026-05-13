@@ -16,12 +16,14 @@ interface RsvpRow {
   kolkata_accommodation: boolean | null;
   kolkata_airport_pickup: boolean | null;
   kolkata_train_pickup: boolean | null;
+  kolkata_train_pickup_station: string | null;
   attending_kerala: boolean | null;
   kerala_arrival: string | null;
   kerala_departure: string | null;
   kerala_accommodation: boolean | null;
   kerala_airport_pickup: boolean | null;
   kerala_train_pickup: boolean | null;
+  kerala_train_pickup_station: string | null;
   special_notes: string | null;
 }
 
@@ -64,11 +66,13 @@ function rowToFormData(row: RsvpRow): Partial<RsvpFormData> {
     kolkataAccommodation: accommodationLabel(row.kolkata_accommodation),
     kolkataAirportPickup: pickupLabel(row.kolkata_airport_pickup),
     kolkataTrainPickup: trainPickupLabel(row.kolkata_train_pickup),
+    kolkataTrainPickupStation: row.kolkata_train_pickup_station ?? '',
     kolkataArrival: toLocalDatetime(row.kolkata_arrival),
     kolkataDeparture: toLocalDatetime(row.kolkata_departure),
     keralaAccommodation: accommodationLabel(row.kerala_accommodation),
     keralaAirportPickup: pickupLabel(row.kerala_airport_pickup),
     keralaTrainPickup: trainPickupLabel(row.kerala_train_pickup),
+    keralaTrainPickupStation: row.kerala_train_pickup_station ?? '',
     keralaArrival: toLocalDatetime(row.kerala_arrival),
     keralaDeparture: toLocalDatetime(row.kerala_departure),
     specialNotes: row.special_notes ?? '',
@@ -90,8 +94,8 @@ export default function RSVPEditPage() {
   const { token } = useParams<{ token: string }>();
   const [load, setLoad] = useState<LoadState>({ kind: 'loading' });
   const [keralaNonVeg, setKeralaNonVeg] = useState(false);
-  const [kolkataRailwayStation, setKolkataRailwayStation] = useState<string | undefined>(undefined);
-  const [keralaRailwayStation, setKeralaRailwayStation] = useState<string | undefined>(undefined);
+  const [kolkataRailwayStations, setKolkataRailwayStations] = useState<string[]>([]);
+  const [keralaRailwayStations, setKeralaRailwayStations] = useState<string[]>([]);
   const isAdmin =
     typeof window !== 'undefined' &&
     window.sessionStorage.getItem(ADMIN_AUTH_KEY) === 'true';
@@ -132,12 +136,16 @@ export default function RSVPEditPage() {
     async function loadConfig() {
       const { data } = await supabase
         .from('site_config')
-        .select('kerala_non_veg, kolkata_railway_station, kerala_railway_station')
+        .select('kerala_non_veg, kolkata_railway_stations, kerala_railway_stations')
         .maybeSingle();
       if (cancelled || !data) return;
       setKeralaNonVeg(Boolean(data.kerala_non_veg));
-      setKolkataRailwayStation(data.kolkata_railway_station ?? undefined);
-      setKeralaRailwayStation(data.kerala_railway_station ?? undefined);
+      setKolkataRailwayStations(
+        Array.isArray(data.kolkata_railway_stations) ? data.kolkata_railway_stations : []
+      );
+      setKeralaRailwayStations(
+        Array.isArray(data.kerala_railway_stations) ? data.kerala_railway_stations : []
+      );
     }
     loadConfig();
     return () => {
@@ -220,8 +228,8 @@ export default function RSVPEditPage() {
             initial={load.data}
             onSubmit={handleSubmit}
             keralaNonVeg={keralaNonVeg}
-            kolkataRailwayStation={kolkataRailwayStation}
-            keralaRailwayStation={keralaRailwayStation}
+            kolkataRailwayStations={kolkataRailwayStations}
+            keralaRailwayStations={keralaRailwayStations}
           />
         )}
       </div>

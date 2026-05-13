@@ -7,11 +7,12 @@ interface CityCardProps {
   dates: string;
   accentColor: string;
   airport: { name: string; code: string; note?: string };
-  railwayStation?: string;
+  railwayStations?: string[];
   transport: string;
 }
 
-function CityCard({ city, dates, accentColor, airport, railwayStation, transport }: CityCardProps) {
+function CityCard({ city, dates, accentColor, airport, railwayStations, transport }: CityCardProps) {
+  const stations = railwayStations?.filter(Boolean) ?? [];
   return (
     <div className="bg-white rounded-[4px] shadow-[0_2px_12px_rgba(59,47,47,0.06)] overflow-hidden">
       <div className="h-[3px]" style={{ backgroundColor: accentColor }} />
@@ -34,13 +35,15 @@ function CityCard({ city, dates, accentColor, airport, railwayStation, transport
           </p>
         </div>
 
-        {/* Railway Station */}
-        {railwayStation && (
+        {/* Railway Station(s) */}
+        {stations.length > 0 && (
           <div className="mb-5">
             <p className="font-sans-body text-[11px] font-semibold uppercase tracking-[0.12em] text-[#3D6B5B] mb-2">
-              Nearest Railway Station
+              Nearest Railway {stations.length === 1 ? 'Station' : 'Stations'}
             </p>
-            <p className="font-sans-body text-[15px] text-[#3B2F2F]">{railwayStation}</p>
+            <p className="font-sans-body text-[15px] text-[#3B2F2F]">
+              {stations.length === 1 ? stations[0] : stations.join(' or ')}
+            </p>
           </div>
         )}
 
@@ -57,19 +60,22 @@ function CityCard({ city, dates, accentColor, airport, railwayStation, transport
 }
 
 export default function TravelSection() {
-  const [stations, setStations] = useState<{ kolkata?: string; kerala?: string }>({});
+  const [stations, setStations] = useState<{ kolkata: string[]; kerala: string[] }>({
+    kolkata: [],
+    kerala: [],
+  });
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       const { data } = await supabase
         .from('site_config')
-        .select('kolkata_railway_station, kerala_railway_station')
+        .select('kolkata_railway_stations, kerala_railway_stations')
         .maybeSingle();
       if (cancelled || !data) return;
       setStations({
-        kolkata: data.kolkata_railway_station ?? undefined,
-        kerala: data.kerala_railway_station ?? undefined,
+        kolkata: Array.isArray(data.kolkata_railway_stations) ? data.kolkata_railway_stations : [],
+        kerala: Array.isArray(data.kerala_railway_stations) ? data.kerala_railway_stations : [],
       });
     }
     load();
@@ -96,7 +102,7 @@ export default function TravelSection() {
                 name: 'Netaji Subhas Chandra Bose International Airport',
                 code: 'CCU',
               }}
-              railwayStation={stations.kolkata}
+              railwayStations={stations.kolkata}
               transport="Shared transport options will be arranged — please indicate in your RSVP."
             />
           </ScrollReveal>
@@ -104,14 +110,14 @@ export default function TravelSection() {
           <ScrollReveal direction="right" delay={0.15}>
             <CityCard
               city="Pala / Kottayam, Kerala"
-              dates="Reception • July 18, 2026"
+              dates="Reception • July 25, 2026"
               accentColor="#3D6B5B"
               airport={{
                 name: 'Cochin International Airport',
                 code: 'COK',
                 note: 'approximately 2-hour drive to Pala/Kottayam',
               }}
-              railwayStation={stations.kerala}
+              railwayStations={stations.kerala}
               transport="Shared transport options will be arranged — please indicate in your RSVP."
             />
           </ScrollReveal>

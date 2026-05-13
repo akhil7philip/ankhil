@@ -182,13 +182,13 @@ export default function HeroSection({ lenis }: HeroSectionProps) {
             className="font-sans-body text-sm md:text-base text-white/90 leading-relaxed"
             style={{ textShadow: '0 1px 8px rgba(0,0,0,0.5)' }}
           >
-            Kolkata, India &bull; July 6 &ndash; 8, 2026
+            Kolkata, West Bengal &bull; July 6 &ndash; 8, 2026
           </p>
           <p
             className="font-sans-body text-sm md:text-base text-white/80 leading-relaxed mt-1"
             style={{ textShadow: '0 1px 8px rgba(0,0,0,0.5)' }}
           >
-            Reception &bull; Pala, Kerala &bull; July 18, 2026
+            Pala, Kerala &bull; July 25, 2026
           </p>
         </div>
 
