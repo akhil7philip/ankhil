@@ -1,14 +1,17 @@
+import { useEffect, useState } from 'react';
 import ScrollReveal from '@/components/ScrollReveal';
+import { supabase } from '@/lib/supabase';
 
 interface CityCardProps {
   city: string;
   dates: string;
   accentColor: string;
   airport: { name: string; code: string; note?: string };
+  railwayStation?: string;
   transport: string;
 }
 
-function CityCard({ city, dates, accentColor, airport, transport }: CityCardProps) {
+function CityCard({ city, dates, accentColor, airport, railwayStation, transport }: CityCardProps) {
   return (
     <div className="bg-white rounded-[4px] shadow-[0_2px_12px_rgba(59,47,47,0.06)] overflow-hidden">
       <div className="h-[3px]" style={{ backgroundColor: accentColor }} />
@@ -31,6 +34,16 @@ function CityCard({ city, dates, accentColor, airport, transport }: CityCardProp
           </p>
         </div>
 
+        {/* Railway Station */}
+        {railwayStation && (
+          <div className="mb-5">
+            <p className="font-sans-body text-[11px] font-semibold uppercase tracking-[0.12em] text-[#3D6B5B] mb-2">
+              Nearest Railway Station
+            </p>
+            <p className="font-sans-body text-[15px] text-[#3B2F2F]">{railwayStation}</p>
+          </div>
+        )}
+
         {/* Transport */}
         <div>
           <p className="font-sans-body text-[11px] font-semibold uppercase tracking-[0.12em] text-[#3D6B5B] mb-2">
@@ -44,6 +57,27 @@ function CityCard({ city, dates, accentColor, airport, transport }: CityCardProp
 }
 
 export default function TravelSection() {
+  const [stations, setStations] = useState<{ kolkata?: string; kerala?: string }>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const { data } = await supabase
+        .from('site_config')
+        .select('kolkata_railway_station, kerala_railway_station')
+        .maybeSingle();
+      if (cancelled || !data) return;
+      setStations({
+        kolkata: data.kolkata_railway_station ?? undefined,
+        kerala: data.kerala_railway_station ?? undefined,
+      });
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <section id="travel" className="bg-[#F5F1EB] py-[60px] md:py-[100px] px-5 md:px-10">
       <div className="max-w-[1100px] mx-auto">
@@ -62,6 +96,7 @@ export default function TravelSection() {
                 name: 'Netaji Subhas Chandra Bose International Airport',
                 code: 'CCU',
               }}
+              railwayStation={stations.kolkata}
               transport="Shared transport options will be arranged — please indicate in your RSVP."
             />
           </ScrollReveal>
@@ -76,6 +111,7 @@ export default function TravelSection() {
                 code: 'COK',
                 note: 'approximately 2-hour drive to Pala/Kottayam',
               }}
+              railwayStation={stations.kerala}
               transport="Shared transport options will be arranged — please indicate in your RSVP."
             />
           </ScrollReveal>
