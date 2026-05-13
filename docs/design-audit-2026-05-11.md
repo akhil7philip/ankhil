@@ -61,7 +61,7 @@ At least say "we'll share a livestream link closer to the day for those who can'
 
 ### 2.1 Two stacked countdown timers feel heavy — **P1**
 The Kolkata countdown is the real event. The Kerala countdown is essentially "+12 days from the first" which doesn't create urgency — it creates visual repetition. Options, in order of preference:
-1. **Single primary countdown** to July 6, with Kerala dates shown as small text below ("Kerala reception follows July 18–19").
+1. **Single primary countdown** to July 6, with Kerala dates shown as small text below ("Kerala reception follows July 25–26").
 2. Show one countdown, and only switch to the Kerala countdown *after* July 9.
 3. Keep both, but make the Kerala one substantially smaller (it kind of is, but they still stack as two equally-prominent blocks).
 

@@ -27,7 +27,7 @@ function buildFaqData(keralaNonVeg: boolean): FAQItem[] {
     {
       question: 'What food will be served?',
       answer: keralaNonVeg
-        ? 'The Kolkata events are fully vegetarian. The Kerala reception has both vegetarian and non-vegetarian options — please indicate your preference in the RSVP.'
+        ? 'The Kolkata events are fully vegetarian. The Pala reception has both vegetarian and non-vegetarian options — please indicate your preference in the RSVP.'
         : 'Only vegetarian food will be served at both weddings.',
     },
     {

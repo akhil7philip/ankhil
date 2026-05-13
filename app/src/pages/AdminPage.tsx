@@ -18,12 +18,14 @@ interface RSVP {
   kolkata_accommodation: boolean | null;
   kolkata_airport_pickup: boolean | null;
   kolkata_train_pickup: boolean | null;
+  kolkata_train_pickup_station: string | null;
   attending_kerala: boolean;
   kerala_arrival: string | null;
   kerala_departure: string | null;
   kerala_accommodation: boolean | null;
   kerala_airport_pickup: boolean | null;
   kerala_train_pickup: boolean | null;
+  kerala_train_pickup_station: string | null;
   special_notes: string | null;
 }
 
@@ -90,24 +92,36 @@ interface SiteConfig {
   rsvp_closed_message: string | null;
   kolkata_venue: string | null;
   kolkata_map_url: string | null;
-  kolkata_railway_station: string | null;
+  kolkata_railway_stations: string[] | null;
   kerala_venue: string | null;
   kerala_map_url: string | null;
-  kerala_railway_station: string | null;
+  kerala_railway_stations: string[] | null;
   kerala_non_veg: boolean;
   updated_at: string;
 }
 
 const CONFIG_SELECT =
-  'rsvp_open, rsvp_closed_message, kolkata_venue, kolkata_map_url, kolkata_railway_station, kerala_venue, kerala_map_url, kerala_railway_station, kerala_non_veg, updated_at';
+  'rsvp_open, rsvp_closed_message, kolkata_venue, kolkata_map_url, kolkata_railway_stations, kerala_venue, kerala_map_url, kerala_railway_stations, kerala_non_veg, updated_at';
 
 interface VenueFormState {
   kolkataVenue: string;
   kolkataMapUrl: string;
-  kolkataRailwayStation: string;
+  /** One station per line. Empty lines are dropped on save. */
+  kolkataRailwayStationsText: string;
   keralaVenue: string;
   keralaMapUrl: string;
-  keralaRailwayStation: string;
+  keralaRailwayStationsText: string;
+}
+
+function stationsToText(arr: string[] | null | undefined): string {
+  return (arr ?? []).join('\n');
+}
+
+function textToStations(text: string): string[] {
+  return text
+    .split('\n')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
 }
 
 export default function AdminPage() {
@@ -175,10 +189,10 @@ export default function AdminPage() {
         setVenueForm({
           kolkataVenue: data.kolkata_venue ?? '',
           kolkataMapUrl: data.kolkata_map_url ?? '',
-          kolkataRailwayStation: data.kolkata_railway_station ?? '',
+          kolkataRailwayStationsText: stationsToText(data.kolkata_railway_stations),
           keralaVenue: data.kerala_venue ?? '',
           keralaMapUrl: data.kerala_map_url ?? '',
-          keralaRailwayStation: data.kerala_railway_station ?? '',
+          keralaRailwayStationsText: stationsToText(data.kerala_railway_stations),
         });
       }
     };
@@ -220,10 +234,10 @@ export default function AdminPage() {
       .update({
         kolkata_venue: venueForm.kolkataVenue.trim() || null,
         kolkata_map_url: venueForm.kolkataMapUrl.trim() || null,
-        kolkata_railway_station: venueForm.kolkataRailwayStation.trim() || null,
+        kolkata_railway_stations: textToStations(venueForm.kolkataRailwayStationsText),
         kerala_venue: venueForm.keralaVenue.trim() || null,
         kerala_map_url: venueForm.keralaMapUrl.trim() || null,
-        kerala_railway_station: venueForm.keralaRailwayStation.trim() || null,
+        kerala_railway_stations: textToStations(venueForm.keralaRailwayStationsText),
       })
       .eq('id', true)
       .select(CONFIG_SELECT)
@@ -238,10 +252,10 @@ export default function AdminPage() {
       setVenueForm({
         kolkataVenue: data.kolkata_venue ?? '',
         kolkataMapUrl: data.kolkata_map_url ?? '',
-        kolkataRailwayStation: data.kolkata_railway_station ?? '',
+        kolkataRailwayStationsText: stationsToText(data.kolkata_railway_stations),
         keralaVenue: data.kerala_venue ?? '',
         keralaMapUrl: data.kerala_map_url ?? '',
-        keralaRailwayStation: data.kerala_railway_station ?? '',
+        keralaRailwayStationsText: stationsToText(data.kerala_railway_stations),
       });
       setVenueSaved(true);
       setTimeout(() => setVenueSaved(false), 2500);
@@ -456,15 +470,20 @@ export default function AdminPage() {
                       className="bg-white border border-[rgba(59,47,47,0.15)] rounded-[2px] px-3 py-2 font-sans-body text-sm text-[#3B2F2F] placeholder:text-[#3B2F2F]/40 focus:border-[#C4A055] focus:outline-none focus:ring-2 focus:ring-[rgba(196,160,85,0.15)] transition-all duration-200"
                     />
                   </div>
-                  <input
-                    type="text"
-                    value={venueForm.kolkataRailwayStation}
-                    onChange={(e) =>
-                      setVenueForm({ ...venueForm, kolkataRailwayStation: e.target.value })
-                    }
-                    placeholder="Nearest railway station (e.g. Sealdah Railway Station)"
-                    className="mt-3 w-full bg-white border border-[rgba(59,47,47,0.15)] rounded-[2px] px-3 py-2 font-sans-body text-sm text-[#3B2F2F] placeholder:text-[#3B2F2F]/40 focus:border-[#C4A055] focus:outline-none focus:ring-2 focus:ring-[rgba(196,160,85,0.15)] transition-all duration-200"
-                  />
+                  <div className="mt-3">
+                    <textarea
+                      value={venueForm.kolkataRailwayStationsText}
+                      onChange={(e) =>
+                        setVenueForm({ ...venueForm, kolkataRailwayStationsText: e.target.value })
+                      }
+                      rows={3}
+                      placeholder={'Nearest railway stations — one per line\nSealdah Railway Station\nHowrah Railway Station'}
+                      className="w-full bg-white border border-[rgba(59,47,47,0.15)] rounded-[2px] px-3 py-2 font-sans-body text-sm text-[#3B2F2F] placeholder:text-[#3B2F2F]/40 focus:border-[#C4A055] focus:outline-none focus:ring-2 focus:ring-[rgba(196,160,85,0.15)] transition-all duration-200 resize-y"
+                    />
+                    <p className="font-sans-body text-[11px] text-[#3B2F2F]/55 mt-1">
+                      One station per line. Guests choose from a dropdown when there are multiple.
+                    </p>
+                  </div>
                 </div>
 
                 {/* Kerala (Pala) */}
@@ -493,15 +512,20 @@ export default function AdminPage() {
                       className="bg-white border border-[rgba(59,47,47,0.15)] rounded-[2px] px-3 py-2 font-sans-body text-sm text-[#3B2F2F] placeholder:text-[#3B2F2F]/40 focus:border-[#C4A055] focus:outline-none focus:ring-2 focus:ring-[rgba(196,160,85,0.15)] transition-all duration-200"
                     />
                   </div>
-                  <input
-                    type="text"
-                    value={venueForm.keralaRailwayStation}
-                    onChange={(e) =>
-                      setVenueForm({ ...venueForm, keralaRailwayStation: e.target.value })
-                    }
-                    placeholder="Nearest railway station (e.g. Kottayam Railway Station)"
-                    className="mt-3 w-full bg-white border border-[rgba(59,47,47,0.15)] rounded-[2px] px-3 py-2 font-sans-body text-sm text-[#3B2F2F] placeholder:text-[#3B2F2F]/40 focus:border-[#C4A055] focus:outline-none focus:ring-2 focus:ring-[rgba(196,160,85,0.15)] transition-all duration-200"
-                  />
+                  <div className="mt-3">
+                    <textarea
+                      value={venueForm.keralaRailwayStationsText}
+                      onChange={(e) =>
+                        setVenueForm({ ...venueForm, keralaRailwayStationsText: e.target.value })
+                      }
+                      rows={3}
+                      placeholder={'Nearest railway stations — one per line\nKottayam Railway Station'}
+                      className="w-full bg-white border border-[rgba(59,47,47,0.15)] rounded-[2px] px-3 py-2 font-sans-body text-sm text-[#3B2F2F] placeholder:text-[#3B2F2F]/40 focus:border-[#C4A055] focus:outline-none focus:ring-2 focus:ring-[rgba(196,160,85,0.15)] transition-all duration-200 resize-y"
+                    />
+                    <p className="font-sans-body text-[11px] text-[#3B2F2F]/55 mt-1">
+                      One station per line. Guests choose from a dropdown when there are multiple.
+                    </p>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-end gap-4 pt-1">
@@ -646,6 +670,11 @@ export default function AdminPage() {
                               <BoolBadge val={r.kolkata_airport_pickup} label="Air" />
                               <BoolBadge val={r.kolkata_train_pickup} label="Rail" />
                             </div>
+                            {r.kolkata_train_pickup && r.kolkata_train_pickup_station && (
+                              <p className="font-sans-body text-[10px] text-[#3B2F2F]/55 italic">
+                                Pickup: {r.kolkata_train_pickup_station}
+                              </p>
+                            )}
                             <p className="font-sans-body text-[10px] text-[#3B2F2F]/50">
                               {formatShortDate(r.kolkata_arrival)} → {formatShortDate(r.kolkata_departure)}
                             </p>
@@ -662,6 +691,11 @@ export default function AdminPage() {
                               <BoolBadge val={r.kerala_airport_pickup} label="Air" />
                               <BoolBadge val={r.kerala_train_pickup} label="Rail" />
                             </div>
+                            {r.kerala_train_pickup && r.kerala_train_pickup_station && (
+                              <p className="font-sans-body text-[10px] text-[#3B2F2F]/55 italic">
+                                Pickup: {r.kerala_train_pickup_station}
+                              </p>
+                            )}
                             <p className="font-sans-body text-[10px] text-[#3B2F2F]/50">
                               {formatShortDate(r.kerala_arrival)} → {formatShortDate(r.kerala_departure)}
                             </p>

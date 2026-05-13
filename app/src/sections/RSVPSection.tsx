@@ -11,8 +11,8 @@ interface SiteConfig {
   rsvp_open: boolean;
   rsvp_closed_message: string | null;
   kerala_non_veg: boolean;
-  kolkata_railway_station: string | null;
-  kerala_railway_station: string | null;
+  kolkata_railway_stations: string[];
+  kerala_railway_stations: string[];
 }
 
 const DEFAULT_CLOSED_MESSAGE =
@@ -26,8 +26,8 @@ export default function RSVPSection() {
     rsvp_open: true,
     rsvp_closed_message: null,
     kerala_non_veg: false,
-    kolkata_railway_station: null,
-    kerala_railway_station: null,
+    kolkata_railway_stations: [],
+    kerala_railway_stations: [],
   });
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function RSVPSection() {
       const { data, error } = await supabase
         .from('site_config')
         .select(
-          'rsvp_open, rsvp_closed_message, kerala_non_veg, kolkata_railway_station, kerala_railway_station'
+          'rsvp_open, rsvp_closed_message, kerala_non_veg, kolkata_railway_stations, kerala_railway_stations'
         )
         .maybeSingle();
       if (cancelled) return;
@@ -51,8 +51,12 @@ export default function RSVPSection() {
           rsvp_open: data.rsvp_open,
           rsvp_closed_message: data.rsvp_closed_message,
           kerala_non_veg: Boolean(data.kerala_non_veg),
-          kolkata_railway_station: data.kolkata_railway_station,
-          kerala_railway_station: data.kerala_railway_station,
+          kolkata_railway_stations: Array.isArray(data.kolkata_railway_stations)
+            ? data.kolkata_railway_stations
+            : [],
+          kerala_railway_stations: Array.isArray(data.kerala_railway_stations)
+            ? data.kerala_railway_stations
+            : [],
         });
       }
     }
@@ -112,7 +116,7 @@ export default function RSVPSection() {
           </h2>
           <p className="font-sans-body text-base text-white/70 mb-8 md:mb-12">
             {config.rsvp_open
-              ? "Please let us know if you'll be joining us in Kolkata and/or Kerala"
+              ? "Please let us know if you'll be joining us in Kolkata and/or Pala"
               : "Already submitted? You can still update yours via your private edit link."}
           </p>
         </ScrollReveal>
@@ -123,8 +127,8 @@ export default function RSVPSection() {
               mode="create"
               onSubmit={handleSubmit}
               keralaNonVeg={config.kerala_non_veg}
-              kolkataRailwayStation={config.kolkata_railway_station ?? undefined}
-              keralaRailwayStation={config.kerala_railway_station ?? undefined}
+              kolkataRailwayStations={config.kolkata_railway_stations}
+              keralaRailwayStations={config.kerala_railway_stations}
             />
           </ScrollReveal>
         ) : (
