@@ -53,6 +53,9 @@ export interface RSVPFormProps {
   mode: 'create' | 'edit';
   initial?: Partial<RsvpFormData>;
   onSubmit: (payload: RsvpPayload) => Promise<SubmitResult>;
+  /** When true, the Kerala details panel includes a Veg/Non-Veg radio. The
+   * field is required only when the guest is also attending Kerala. */
+  keralaNonVeg?: boolean;
 }
 
 const emptyForm: RsvpFormData = {
@@ -60,6 +63,9 @@ const emptyForm: RsvpFormData = {
   phone: '',
   email: '',
   guestCount: '1',
+  // Empty unless the admin's kerala_non_veg toggle is on AND the guest is
+  // attending Kerala. When the dietary radio is hidden, buildPayload defaults
+  // to 'veg' so the DB always sees a valid value.
   dietary: '',
   attendingKolkata: false,
   attendingKerala: false,
@@ -102,9 +108,11 @@ const labelClasses =
   'block font-sans-body text-xs font-semibold uppercase tracking-[0.1em] text-[#3B2F2F] mb-1.5';
 
 const kolkataOptions = [
-  { value: 'reception', label: 'July 6 — Reception / Welcome Evening' },
-  { value: 'mehendi-haldi', label: 'July 7 — Mehendi, Haldi & Sangeet' },
-  { value: 'wedding', label: 'July 8 — Wedding Ceremony & Pheras' },
+  { value: 'mehendi', label: 'July 6 evening — Mehendi' },
+  { value: 'haldi', label: 'July 7 morning — Haldi' },
+  { value: 'sangeet', label: 'July 7 evening — Musical Night' },
+  { value: 'varmala', label: 'July 8 evening — Varmala & Reception' },
+  { value: 'pheras', label: 'July 8 night — Wedding Ceremony & Pheras' },
 ];
 
 const isYes = (val: string) => val.startsWith('Yes');
@@ -206,7 +214,9 @@ function buildPayload(form: RsvpFormData, kolkataTravel: boolean, keralaTravel: 
     full_name: form.fullName.trim(),
     phone: form.phone.trim(),
     email: form.email.trim() || null,
-    dietary: form.dietary as 'veg' | 'non-veg',
+    // Default to 'veg' when the form hid the dietary radio (keralaNonVeg=false
+    // or guest not attending Kerala). Keeps the DB column non-null.
+    dietary: (form.dietary || 'veg') as 'veg' | 'non-veg',
     guest_count: parseInt(form.guestCount, 10) || 1,
     attending_kolkata: form.attendingKolkata,
     kolkata_events: form.attendingKolkata ? form.kolkataEvents : null,
@@ -225,7 +235,7 @@ function buildPayload(form: RsvpFormData, kolkataTravel: boolean, keralaTravel: 
 
 type State = 'idle' | 'submitting' | 'success' | 'error';
 
-export default function RSVPForm({ mode, initial, onSubmit }: RSVPFormProps) {
+export default function RSVPForm({ mode, initial, onSubmit, keralaNonVeg = false }: RSVPFormProps) {
   const [form, setForm] = useState<RsvpFormData>({ ...emptyForm, ...initial });
   const [errors, setErrors] = useState<Partial<Record<keyof RsvpFormData, string>>>({});
   const [state, setState] = useState<State>('idle');
@@ -276,12 +286,14 @@ export default function RSVPForm({ mode, initial, onSubmit }: RSVPFormProps) {
     if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       newErrors.email = 'Please enter a valid email address';
     }
-    if (!form.dietary) newErrors.dietary = 'Please select your dietary preference';
     if (!form.attendingKolkata && !form.attendingKerala) {
       newErrors.attendingKolkata = 'Please select at least one celebration';
     }
     if (form.attendingKolkata && form.kolkataEvents.length === 0) {
       newErrors.kolkataEvents = 'Please select at least one Kolkata event';
+    }
+    if (keralaNonVeg && form.attendingKerala && !form.dietary) {
+      newErrors.dietary = 'Please select your meal preference for the reception';
     }
     if (kolkataNeedsTravelInfo) {
       if (!form.kolkataArrival) newErrors.kolkataArrival = 'Please enter your expected arrival';
@@ -469,10 +481,10 @@ export default function RSVPForm({ mode, initial, onSubmit }: RSVPFormProps) {
           </div>
 
           {/* Guest Count */}
-          <div>
+          <div className="md:col-span-2">
             <label className={labelClasses}>Number of Guests *</label>
             <select
-              className={inputClasses + ' appearance-none cursor-pointer'}
+              className={inputClasses + ' appearance-none cursor-pointer md:max-w-[200px]'}
               value={form.guestCount}
               onChange={(e) => updateField('guestCount', e.target.value)}
               disabled={isSubmitting}
@@ -484,22 +496,6 @@ export default function RSVPForm({ mode, initial, onSubmit }: RSVPFormProps) {
             <p className="font-sans-body text-[11px] text-[#3B2F2F]/55 mt-1.5">
               Total people in your party, including yourself.
             </p>
-          </div>
-
-          {/* Dietary */}
-          <div>
-            <label className={labelClasses}>Dietary Preference *</label>
-            <RadioGroup
-              name="dietary"
-              options={['Vegetarian', 'Non-Vegetarian']}
-              value={form.dietary === 'veg' ? 'Vegetarian' : form.dietary === 'non-veg' ? 'Non-Vegetarian' : ''}
-              onChange={(val) => updateField('dietary', val === 'Vegetarian' ? 'veg' : 'non-veg')}
-              disabled={isSubmitting}
-            />
-            <p className="font-sans-body text-[11px] text-[#3B2F2F]/55 mt-2">
-              Kolkata events are fully vegetarian; the Kerala reception has both vegetarian and non-vegetarian options.
-            </p>
-            {errors.dietary && <p className="text-xs text-[#7B2D41] mt-1">{errors.dietary}</p>}
           </div>
         </div>
       </div>
@@ -677,6 +673,33 @@ export default function RSVPForm({ mode, initial, onSubmit }: RSVPFormProps) {
             <span className="w-2 h-2 rounded-full bg-[#3D6B5B]" />
             Kerala Details
           </h3>
+
+          {keralaNonVeg && (
+            <div className="mb-5">
+              <label className={labelClasses}>Meal preference for the reception *</label>
+              <RadioGroup
+                name="kerala-dietary"
+                options={['Vegetarian', 'Non-Vegetarian']}
+                value={
+                  form.dietary === 'veg'
+                    ? 'Vegetarian'
+                    : form.dietary === 'non-veg'
+                    ? 'Non-Vegetarian'
+                    : ''
+                }
+                onChange={(val) =>
+                  updateField('dietary', val === 'Vegetarian' ? 'veg' : 'non-veg')
+                }
+                disabled={isSubmitting}
+              />
+              <p className="font-sans-body text-[11px] text-[#3B2F2F]/55 mt-2">
+                Kolkata events are fully vegetarian. The Kerala reception has both options.
+              </p>
+              {errors.dietary && (
+                <p className="text-xs text-[#7B2D41] mt-1">{errors.dietary}</p>
+              )}
+            </div>
+          )}
 
           <div className="mb-5">
             <label className={labelClasses}>Accommodation</label>

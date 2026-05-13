@@ -79,6 +79,7 @@ const ADMIN_AUTH_KEY = 'ankhil-admin-auth';
 export default function RSVPEditPage() {
   const { token } = useParams<{ token: string }>();
   const [load, setLoad] = useState<LoadState>({ kind: 'loading' });
+  const [keralaNonVeg, setKeralaNonVeg] = useState(false);
   const isAdmin =
     typeof window !== 'undefined' &&
     window.sessionStorage.getItem(ADMIN_AUTH_KEY) === 'true';
@@ -111,6 +112,24 @@ export default function RSVPEditPage() {
       cancelled = true;
     };
   }, [token]);
+
+  // Pick up the Kerala non-veg toggle so the dietary radio shows the same
+  // way it would for a fresh submission.
+  useEffect(() => {
+    let cancelled = false;
+    async function loadConfig() {
+      const { data } = await supabase
+        .from('site_config')
+        .select('kerala_non_veg')
+        .maybeSingle();
+      if (cancelled) return;
+      if (data) setKeralaNonVeg(Boolean(data.kerala_non_veg));
+    }
+    loadConfig();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSubmit = async (payload: RsvpPayload): Promise<SubmitResult> => {
     if (!token) return { ok: false, error: 'Missing edit token.' };
@@ -182,7 +201,12 @@ export default function RSVPEditPage() {
         )}
 
         {load.kind === 'ready' && (
-          <RSVPForm mode="edit" initial={load.data} onSubmit={handleSubmit} />
+          <RSVPForm
+            mode="edit"
+            initial={load.data}
+            onSubmit={handleSubmit}
+            keralaNonVeg={keralaNonVeg}
+          />
         )}
       </div>
     </section>

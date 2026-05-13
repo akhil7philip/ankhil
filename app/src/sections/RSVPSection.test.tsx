@@ -49,7 +49,7 @@ describe('RSVPSection', () => {
     configSelectFn.mockClear();
     singleFn.mockResolvedValue({ data: { edit_token: 'test-token-1234' }, error: null });
     configMaybeSingleFn.mockResolvedValue({
-      data: { rsvp_open: true, rsvp_closed_message: null },
+      data: { rsvp_open: true, rsvp_closed_message: null, kerala_non_veg: false },
       error: null,
     });
   });
@@ -64,7 +64,13 @@ describe('RSVPSection', () => {
     expect(screen.getByPlaceholderText('+91-XXXXXXXXXX')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('your@email.com')).toBeInTheDocument();
     expect(screen.getByText('Number of Guests *')).toBeInTheDocument();
-    expect(screen.getByText('Dietary Preference *')).toBeInTheDocument();
+  });
+
+  it('does not render a dietary preference field (veg-only wedding)', () => {
+    render(<RSVPSection />);
+    expect(screen.queryByText(/Dietary Preference/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/^Vegetarian$/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/^Non-Vegetarian$/i)).not.toBeInTheDocument();
   });
 
   it('email is optional — submits successfully without email', async () => {
@@ -72,7 +78,6 @@ describe('RSVPSection', () => {
 
     await userEvent.type(screen.getByPlaceholderText('Your full name'), 'Test User');
     await userEvent.type(screen.getByPlaceholderText('+91-XXXXXXXXXX'), '9999999999');
-    await userEvent.click(screen.getByLabelText(/^Vegetarian$/i));
     await userEvent.click(screen.getByLabelText(/Kerala reception/i));
 
     fireEvent.click(screen.getByRole('button', { name: /Submit RSVP/i }));
@@ -100,9 +105,10 @@ describe('RSVPSection', () => {
     await waitFor(() => {
       expect(screen.getByText(/Please enter your full name/i)).toBeInTheDocument();
       expect(screen.getByText(/Please enter your phone number/i)).toBeInTheDocument();
-      expect(screen.getByText(/Please select your dietary preference/i)).toBeInTheDocument();
       expect(screen.getByText(/Please select at least one celebration/i)).toBeInTheDocument();
     });
+    // Dietary is no longer required, so no error about it.
+    expect(screen.queryByText(/Please select your dietary preference/i)).not.toBeInTheDocument();
   });
 
   it('shows Kolkata section when Kolkata checkbox is checked', async () => {
@@ -127,7 +133,6 @@ describe('RSVPSection', () => {
 
     await userEvent.type(screen.getByPlaceholderText('Your full name'), 'Test User');
     await userEvent.type(screen.getByPlaceholderText('+91-XXXXXXXXXX'), '9999999999');
-    await userEvent.click(screen.getByLabelText(/^Vegetarian$/i));
     await userEvent.click(screen.getByLabelText(/Kolkata celebrations/i));
 
     fireEvent.click(screen.getByRole('button', { name: /Submit RSVP/i }));
@@ -137,12 +142,11 @@ describe('RSVPSection', () => {
     });
   });
 
-  it('submits successfully with valid data and shows edit link', async () => {
+  it('submits successfully with valid data and defaults dietary to veg', async () => {
     render(<RSVPSection />);
 
     await userEvent.type(screen.getByPlaceholderText('Your full name'), 'Test User');
     await userEvent.type(screen.getByPlaceholderText('+91-XXXXXXXXXX'), '9999999999');
-    await userEvent.click(screen.getByLabelText(/^Vegetarian$/i));
     await userEvent.click(screen.getByLabelText(/Kerala reception/i));
 
     fireEvent.click(screen.getByRole('button', { name: /Submit RSVP/i }));
@@ -150,7 +154,6 @@ describe('RSVPSection', () => {
     await waitFor(() => {
       expect(insertFn).toHaveBeenCalled();
       expect(screen.getByText(/Thank You!/i)).toBeInTheDocument();
-      // Edit URL panel is shown
       expect(screen.getByText(/Need to make changes later/i)).toBeInTheDocument();
       const url = screen.getByDisplayValue(/\/rsvp\/edit\/test-token-1234$/i);
       expect(url).toBeInTheDocument();
@@ -172,7 +175,6 @@ describe('RSVPSection', () => {
 
     await userEvent.type(screen.getByPlaceholderText('Your full name'), 'Test User');
     await userEvent.type(screen.getByPlaceholderText('+91-XXXXXXXXXX'), '9999999999');
-    await userEvent.click(screen.getByLabelText(/^Vegetarian$/i));
     await userEvent.click(screen.getByLabelText(/Kerala reception/i));
 
     fireEvent.click(screen.getByRole('button', { name: /Submit RSVP/i }));
@@ -180,21 +182,6 @@ describe('RSVPSection', () => {
     await waitFor(() => {
       expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
     });
-  });
-
-  it('allows selecting dietary preference', async () => {
-    render(<RSVPSection />);
-
-    const veg = screen.getByLabelText(/^Vegetarian$/i);
-    const nonVeg = screen.getByLabelText(/^Non-Vegetarian$/i);
-
-    await userEvent.click(veg);
-    expect(veg).toBeChecked();
-    expect(nonVeg).not.toBeChecked();
-
-    await userEvent.click(nonVeg);
-    expect(nonVeg).toBeChecked();
-    expect(veg).not.toBeChecked();
   });
 
   it('hides arrival/departure until accommodation or pickup is requested', async () => {
@@ -220,9 +207,8 @@ describe('RSVPSection', () => {
 
     await userEvent.type(screen.getByPlaceholderText('Your full name'), 'Test User');
     await userEvent.type(screen.getByPlaceholderText('+91-XXXXXXXXXX'), '9999999999');
-    await userEvent.click(screen.getByLabelText(/^Vegetarian$/i));
     await userEvent.click(screen.getByLabelText(/Kolkata celebrations/i));
-    await userEvent.click(screen.getByLabelText(/July 6 — Reception/i));
+    await userEvent.click(screen.getByLabelText(/July 6 evening — Mehendi/i));
     await userEvent.click(screen.getByLabelText(/Yes, I need accommodation help/i));
 
     fireEvent.click(screen.getByRole('button', { name: /Submit RSVP/i }));
@@ -250,6 +236,54 @@ describe('RSVPSection', () => {
     expect(screen.getByText(/We are no longer taking RSVPs/i)).toBeInTheDocument();
     expect(screen.queryByPlaceholderText('Your full name')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Submit RSVP/i })).not.toBeInTheDocument();
+  });
+
+  it('shows dietary radio inside Kerala panel when kerala_non_veg is enabled', async () => {
+    configMaybeSingleFn.mockResolvedValue({
+      data: { rsvp_open: true, rsvp_closed_message: null, kerala_non_veg: true },
+      error: null,
+    });
+
+    render(<RSVPSection />);
+
+    // Wait for the form to render under the (open) config
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Your full name')).toBeInTheDocument();
+    });
+
+    // Radio should not yet exist before Kerala is selected
+    expect(screen.queryByText(/Meal preference for the reception/i)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByLabelText(/Kerala reception/i));
+
+    expect(screen.getByText(/Meal preference for the reception/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Vegetarian$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Non-Vegetarian$/i)).toBeInTheDocument();
+  });
+
+  it('requires dietary selection when kerala_non_veg is on and attending Kerala', async () => {
+    configMaybeSingleFn.mockResolvedValue({
+      data: { rsvp_open: true, rsvp_closed_message: null, kerala_non_veg: true },
+      error: null,
+    });
+
+    render(<RSVPSection />);
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Your full name')).toBeInTheDocument();
+    });
+
+    await userEvent.type(screen.getByPlaceholderText('Your full name'), 'Test User');
+    await userEvent.type(screen.getByPlaceholderText('+91-XXXXXXXXXX'), '9999999999');
+    await userEvent.click(screen.getByLabelText(/Kerala reception/i));
+
+    fireEvent.click(screen.getByRole('button', { name: /Submit RSVP/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Please select your meal preference for the reception/i)
+      ).toBeInTheDocument();
+    });
   });
 
   it('"Use suggested" chip fills in the suggested arrival date', async () => {

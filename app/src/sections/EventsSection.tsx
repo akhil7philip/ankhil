@@ -1,18 +1,19 @@
-import { useRef, useLayoutEffect } from 'react';
+import { useEffect, useRef, useLayoutEffect, useMemo, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import ScrollReveal from '@/components/ScrollReveal';
+import { supabase } from '@/lib/supabase';
 
 gsap.registerPlugin(ScrollTrigger);
 
-type IconType = 'reception' | 'mehendi' | 'sangeet' | 'wedding' | 'kerala';
+type IconType = 'reception' | 'mehendi' | 'haldi' | 'sangeet' | 'wedding' | 'kerala';
 
 interface EventItem {
   date: string;
   name: string;
   time: string;
   venue?: string;
-  dressCode: string;
+  dressCode?: string;
   notes?: string;
   mapUrl?: string;
   city: 'kolkata' | 'kerala';
@@ -21,42 +22,59 @@ interface EventItem {
   end: string;   // ISO with offset
 }
 
-const kolkataEvents: EventItem[] = [
+// Default venue strings. Real values come from site_config (editable in /admin).
+const DEFAULT_KOLKATA_VENUE = 'New Town, Kolkata';
+const DEFAULT_KERALA_VENUE = 'Pala, Kerala';
+
+// Event content is defined without venue/mapUrl — those are injected at render
+// from site_config so the couple can update them from /admin without a deploy.
+const kolkataEventsBase: EventItem[] = [
   {
     date: 'July 6',
-    name: 'Reception / Welcome Evening',
-    time: '7:00 PM onwards',
-    dressCode: 'Festive / Cocktail Attire',
+    name: 'Mehendi',
+    time: '3:00 PM onwards',
+    dressCode: 'Shades of green',
     notes:
-      'An informal welcome — drinks, dinner, and the first chance for both families to meet. Casual mingling, no formal program.',
+      "An evening as henna is applied to the bride's hands and feet. Family and close friends are welcome to get henna applied themselves.",
     city: 'kolkata',
-    iconType: 'reception',
-    start: '2026-07-06T19:00:00+05:30',
+    iconType: 'mehendi',
+    start: '2026-07-06T15:00:00+05:30',
     end: '2026-07-06T22:00:00+05:30',
   },
   {
     date: 'July 7',
-    name: 'Mehendi & Haldi',
-    time: '10:00 AM – 5:00 PM',
-    dressCode: 'Bright Colors / Yellow & White Traditional',
+    name: 'Haldi',
+    time: '10:00 AM – 1:00 PM',
+    dressCode: 'Shades of yellow',
     notes:
-      "Henna is applied to the bride's hands and feet, followed by a turmeric paste ceremony said to bless the couple. Guests are welcome to get henna applied and join in.",
+      'A playful turmeric ceremony where family and friends apply a paste of turmeric, sandalwood, and rose water on the bride and groom — said to bless the couple and leave them glowing.',
     city: 'kolkata',
-    iconType: 'mehendi',
+    iconType: 'haldi',
     start: '2026-07-07T10:00:00+05:30',
-    end: '2026-07-07T17:00:00+05:30',
+    end: '2026-07-07T13:00:00+05:30',
   },
   {
     date: 'July 7',
-    name: 'Sangeet Night',
+    name: 'Musical Night',
     time: '7:00 PM onwards',
-    dressCode: 'Glamorous / Festive Evening Wear',
+    dressCode: 'Shades of gold and silver',
     notes:
-      'An evening of music and dance, with family and friends performing for the couple. Expect a packed dance floor and dinner late into the night.',
+      'An evening of music and dance, with family and friends performing for the couple.',
     city: 'kolkata',
     iconType: 'sangeet',
     start: '2026-07-07T19:00:00+05:30',
     end: '2026-07-07T23:00:00+05:30',
+  },
+  {
+    date: 'July 8',
+    name: 'Varmala & Reception',
+    time: '6:00 PM onwards',
+    notes:
+      'The couple exchange floral garlands (varmala), followed by a reception with extended family and friends before the wedding ceremony later that night.',
+    city: 'kolkata',
+    iconType: 'reception',
+    start: '2026-07-08T18:00:00+05:30',
+    end: '2026-07-08T22:00:00+05:30',
   },
   {
     date: 'July 8',
@@ -72,17 +90,16 @@ const kolkataEvents: EventItem[] = [
   },
 ];
 
-const keralaEvents: EventItem[] = [
+const keralaEventsBase: EventItem[] = [
   {
-    date: 'July 18–19',
-    name: 'Kerala Reception',
-    time: 'Evening',
-    dressCode: 'Smart Casual / Semi-Formal',
+    date: 'July 18',
+    name: 'Wedding Reception',
+    time: '6:00 PM onwards',
     notes:
-      "A warm Kerala-Christian-style celebration with the couple, both families, and Akhil's hometown community. Expect a sit-down meal, speeches, and blessings from elders.",
+      'A wedding reception with the couple, both families, friends and hometown community.',
     city: 'kerala',
     iconType: 'kerala',
-    start: '2026-07-18T19:00:00+05:30',
+    start: '2026-07-18T18:00:00+05:30',
     end: '2026-07-18T22:00:00+05:30',
   },
 ];
@@ -118,6 +135,22 @@ function EventIcon({ type, color }: { type: IconType; color: string }) {
           <circle cx="12" cy="20" r="0.8" fill={color} stroke="none" />
         </svg>
       );
+    case 'haldi':
+      // Stylized sun — central disc with eight short rays. Evokes turmeric's
+      // golden glow and the playful, sunny mood of the ceremony.
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="3.6" />
+          <path d="M12 3v2.2" />
+          <path d="M12 18.8V21" />
+          <path d="M3 12h2.2" />
+          <path d="M18.8 12H21" />
+          <path d="M5.6 5.6l1.5 1.5" />
+          <path d="M16.9 16.9l1.5 1.5" />
+          <path d="M5.6 18.4l1.5-1.5" />
+          <path d="M16.9 7.1l1.5-1.5" />
+        </svg>
+      );
     case 'sangeet':
       // Music notes
       return (
@@ -135,7 +168,7 @@ function EventIcon({ type, color }: { type: IconType; color: string }) {
         </svg>
       );
     case 'kerala':
-      // Palm / cross — abstract crossing strokes evoking Kerala's traveled palms and Christian heritage
+      // Crossed palm strokes — evokes Kerala's traveled palms.
       return (
         <svg {...common}>
           <path d="M12 3v18" />
@@ -217,9 +250,11 @@ function EventCard({ event, align }: { event: EventItem; align: 'left' | 'right'
         </a>
       )}
 
-      <p className="font-sans-body text-xs italic text-[#7B2D41] mt-2">
-        Attire: {event.dressCode}
-      </p>
+      {event.dressCode && (
+        <p className="font-sans-body text-xs italic text-[#7B2D41] mt-2">
+          Attire: {event.dressCode}
+        </p>
+      )}
 
       {event.notes && (
         <p className="font-sans-body text-[13px] text-[#3B2F2F]/60 mt-2">{event.notes}</p>
@@ -255,25 +290,69 @@ function EventCard({ event, align }: { event: EventItem; align: 'left' | 'right'
   );
 }
 
-// --- Venue banner --------------------------------------------------------
-function VenueBanner({ accent }: { accent: string }) {
-  return (
-    <div
-      className="rounded-[4px] px-4 md:px-5 py-3 mb-8 md:mb-10 flex items-start gap-3"
-      style={{ backgroundColor: `${accent}14`, borderLeft: `2px solid ${accent}` }}
-    >
-      <p className="font-sans-body text-[13px] md:text-sm text-[#3B2F2F] leading-relaxed">
-        Exact venues are being finalized &mdash; addresses will be shared with you closer to the date.
-      </p>
-    </div>
-  );
-}
-
 // --- Section -------------------------------------------------------------
 export default function EventsSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const kolkataCardsRef = useRef<HTMLDivElement>(null);
   const keralaCardsRef = useRef<HTMLDivElement>(null);
+
+  const [venues, setVenues] = useState({
+    kolkata: DEFAULT_KOLKATA_VENUE,
+    kolkataMapUrl: '',
+    kerala: DEFAULT_KERALA_VENUE,
+    keralaMapUrl: '',
+  });
+
+  // Fetch venue strings from site_config. Defaults are already correct for the
+  // current "not finalized" state, so a failed read still renders sensible
+  // copy ("New Town, Kolkata" / "Pala, Kerala") with no map link.
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const { data, error } = await supabase
+        .from('site_config')
+        .select('kolkata_venue, kolkata_map_url, kerala_venue, kerala_map_url')
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        console.warn('site_config venues read failed; using defaults:', error.message);
+        return;
+      }
+      if (data) {
+        setVenues({
+          kolkata: data.kolkata_venue || DEFAULT_KOLKATA_VENUE,
+          kolkataMapUrl: data.kolkata_map_url || '',
+          kerala: data.kerala_venue || DEFAULT_KERALA_VENUE,
+          keralaMapUrl: data.kerala_map_url || '',
+        });
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Inject venue + mapUrl into each event from the current config.
+  const kolkataEvents = useMemo(
+    () =>
+      kolkataEventsBase.map((e) => ({
+        ...e,
+        venue: venues.kolkata,
+        mapUrl: venues.kolkataMapUrl || undefined,
+      })),
+    [venues.kolkata, venues.kolkataMapUrl]
+  );
+
+  const keralaEvents = useMemo(
+    () =>
+      keralaEventsBase.map((e) => ({
+        ...e,
+        venue: venues.kerala,
+        mapUrl: venues.keralaMapUrl || undefined,
+      })),
+    [venues.kerala, venues.keralaMapUrl]
+  );
 
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
@@ -331,10 +410,6 @@ export default function EventsSection() {
           </h3>
         </ScrollReveal>
 
-        <ScrollReveal delay={0.12}>
-          <VenueBanner accent="#C4A055" />
-        </ScrollReveal>
-
         <div ref={kolkataCardsRef} className="relative">
           {/* Timeline line — desktop */}
           <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-0.5 bg-[#C4A055] -translate-x-1/2" />
@@ -367,12 +442,8 @@ export default function EventsSection() {
             <div className="w-[60px] h-px bg-[#C4A055]" />
           </div>
           <p className="text-center font-serif-display text-base md:text-[22px] uppercase tracking-[0.05em] text-[#3D6B5B] mt-3">
-            Pala / Kottayam &bull; July 18 &ndash; 19, 2026
+            Pala, Kerala &bull; July 18, 2026
           </p>
-        </ScrollReveal>
-
-        <ScrollReveal>
-          <VenueBanner accent="#3D6B5B" />
         </ScrollReveal>
 
         {/* Kerala Events */}
