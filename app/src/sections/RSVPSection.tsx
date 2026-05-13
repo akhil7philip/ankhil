@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import type Lenis from 'lenis';
 import ScrollReveal from '@/components/ScrollReveal';
 import RSVPForm, { type RsvpPayload, type SubmitResult } from '@/components/RSVPForm';
 import { supabase } from '@/lib/supabase';
 
 gsap.registerPlugin(ScrollTrigger);
+
+interface RSVPSectionProps {
+  lenis?: Lenis | null;
+}
 
 interface SiteConfig {
   rsvp_open: boolean;
@@ -18,7 +23,7 @@ interface SiteConfig {
 const DEFAULT_CLOSED_MESSAGE =
   "RSVPs are now closed. If you've already submitted yours, you can still update your details using the private edit link we sent. For anything else, please reach out to us directly.";
 
-export default function RSVPSection() {
+export default function RSVPSection({ lenis }: RSVPSectionProps = {}) {
   // Render optimistically as "open". If the config fetch comes back closed,
   // we'll swap to the closed card. Avoids a loading flash on the most common
   // path (open) and keeps the server-side trigger as the real enforcement.
@@ -129,6 +134,7 @@ export default function RSVPSection() {
               keralaNonVeg={config.kerala_non_veg}
               kolkataRailwayStations={config.kolkata_railway_stations}
               keralaRailwayStations={config.kerala_railway_stations}
+              lenis={lenis}
             />
           </ScrollReveal>
         ) : (
