@@ -100,10 +100,10 @@ const emptyForm: RsvpFormData = {
 };
 
 const SUGGESTED = {
-  kolkataArrival: '2026-07-05T18:00',
+  kolkataArrival: '2026-07-06T09:00',
   kolkataDeparture: '2026-07-09T10:00',
-  keralaArrival: '2026-07-18T12:00',
-  keralaDeparture: '2026-07-20T10:00',
+  keralaArrival: '2026-07-25T11:00',
+  keralaDeparture: '2026-07-26T12:00',
 };
 
 function formatSuggestionLabel(iso: string): string {

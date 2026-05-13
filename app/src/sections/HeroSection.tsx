@@ -9,7 +9,7 @@ interface HeroSectionProps {
 
 const KOLKATA_DATE = new Date('2026-07-06T00:00:00+05:30');
 const KOLKATA_EVENTS_END = new Date('2026-07-09T00:00:00+05:30');
-const KERALA_DATE = new Date('2026-07-18T18:00:00+05:30');
+const KERALA_DATE = new Date('2026-07-25T18:00:00+05:30');
 
 function pickCountdown(now: Date): { target: Date; title: string } {
   if (now < KOLKATA_EVENTS_END) {

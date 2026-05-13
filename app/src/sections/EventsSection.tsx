@@ -98,8 +98,8 @@ const keralaEventsBase: EventItem[] = [
       'A wedding reception with the couple, both families, friends and hometown community.',
     city: 'kerala',
     iconType: 'kerala',
-    start: '2026-07-18T18:00:00+05:30',
-    end: '2026-07-18T22:00:00+05:30',
+    start: '2026-07-25T18:00:00+05:30',
+    end: '2026-07-25T22:00:00+05:30',
   },
 ];
 
