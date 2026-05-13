@@ -62,55 +62,24 @@ export default function TravelSection() {
                 name: 'Netaji Subhas Chandra Bose International Airport',
                 code: 'CCU',
               }}
-              transport="Airport to city center: ~45–60 minutes by taxi. Uber and Ola available. Pre-paid taxis at airport."
+              transport="Shared transport options will be arranged — please indicate in your RSVP."
             />
           </ScrollReveal>
 
           <ScrollReveal direction="right" delay={0.15}>
             <CityCard
               city="Pala / Kottayam, Kerala"
-              dates="Reception • July 18 – 19, 2026"
+              dates="Reception • July 18, 2026"
               accentColor="#3D6B5B"
               airport={{
                 name: 'Cochin International Airport',
                 code: 'COK',
                 note: 'approximately 2-hour drive to Pala/Kottayam',
               }}
-              transport="From Kochi Airport to Pala/Kottayam: ~2 hours by car. We recommend hiring a private taxi. Shared transport options may be arranged — please indicate in your RSVP."
+              transport="Shared transport options will be arranged — please indicate in your RSVP."
             />
           </ScrollReveal>
         </div>
-
-        {/* Travel Between Cities Note */}
-        <ScrollReveal delay={0.2}>
-          <div className="mt-8 md:mt-10 bg-[rgba(196,160,85,0.08)] rounded-[4px] p-6 md:p-7">
-            <h4 className="font-serif-display text-base md:text-lg text-[#3B2F2F] mb-2">
-              Travel Between Cities
-            </h4>
-            <p className="font-sans-body text-sm text-[#3B2F2F] leading-relaxed">
-              If you're attending both the Kolkata wedding and the Kerala reception, flights between
-              Kolkata (CCU) and Kochi (COK) are approximately 2.5–3 hours. We suggest arriving in
-              Kolkata by <strong>July 5</strong>, departing on <strong>July 9</strong>, and arriving in
-              Kerala by <strong>July 17</strong> — comfortable margins on both ends, with no
-              same-day connections.
-            </p>
-          </div>
-        </ScrollReveal>
-
-        {/* Weather & What to Pack */}
-        <ScrollReveal delay={0.25}>
-          <div className="mt-5 md:mt-6 bg-[rgba(61,107,91,0.08)] rounded-[4px] p-6 md:p-7">
-            <h4 className="font-serif-display text-base md:text-lg text-[#3B2F2F] mb-2">
-              Weather &amp; What to Pack
-            </h4>
-            <p className="font-sans-body text-sm text-[#3B2F2F] leading-relaxed">
-              July is monsoon season in both Kolkata and Kerala. Expect warm, humid days
-              (28–34&deg;C) with frequent showers, especially in Kerala. Pack a light umbrella or a
-              compact rain jacket, breathable cottons or linens, and comfortable closed-toe shoes
-              you don&rsquo;t mind getting damp.
-            </p>
-          </div>
-        </ScrollReveal>
       </div>
     </section>
   );

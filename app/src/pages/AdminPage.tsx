@@ -52,9 +52,16 @@ function formatShortDate(iso: string | null) {
 
 function eventLabel(value: string) {
   const map: Record<string, string> = {
-    reception: 'Reception',
-    'mehendi-haldi': 'Mehendi & Sangeet',
-    wedding: 'Wedding',
+    // Current schedule
+    mehendi: 'Mehendi',
+    haldi: 'Haldi',
+    sangeet: 'Musical Night',
+    varmala: 'Varmala & Reception',
+    pheras: 'Wedding (Pheras)',
+    // Legacy values from RSVPs submitted before the schedule was rewritten
+    reception: 'Reception (legacy)',
+    'mehendi-haldi': 'Mehendi/Haldi/Sangeet (legacy)',
+    wedding: 'Wedding (legacy)',
   };
   return map[value] || value;
 }
@@ -78,7 +85,22 @@ function BoolBadge({ val }: { val: boolean | null }) {
 interface SiteConfig {
   rsvp_open: boolean;
   rsvp_closed_message: string | null;
+  kolkata_venue: string | null;
+  kolkata_map_url: string | null;
+  kerala_venue: string | null;
+  kerala_map_url: string | null;
+  kerala_non_veg: boolean;
   updated_at: string;
+}
+
+const CONFIG_SELECT =
+  'rsvp_open, rsvp_closed_message, kolkata_venue, kolkata_map_url, kerala_venue, kerala_map_url, kerala_non_veg, updated_at';
+
+interface VenueFormState {
+  kolkataVenue: string;
+  kolkataMapUrl: string;
+  keralaVenue: string;
+  keralaMapUrl: string;
 }
 
 export default function AdminPage() {
@@ -137,12 +159,18 @@ export default function AdminPage() {
     const fetchConfig = async () => {
       const { data, error } = await supabase
         .from('site_config')
-        .select('rsvp_open, rsvp_closed_message, updated_at')
+        .select(CONFIG_SELECT)
         .maybeSingle();
       if (error) {
         setConfigError(error.message);
       } else if (data) {
         setConfig(data);
+        setVenueForm({
+          kolkataVenue: data.kolkata_venue ?? '',
+          kolkataMapUrl: data.kolkata_map_url ?? '',
+          keralaVenue: data.kerala_venue ?? '',
+          keralaMapUrl: data.kerala_map_url ?? '',
+        });
       }
     };
     fetchConfig();
@@ -151,6 +179,14 @@ export default function AdminPage() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const [venueForm, setVenueForm] = useState<VenueFormState | null>(null);
+  const [venueBusy, setVenueBusy] = useState(false);
+  const [venueError, setVenueError] = useState<string | null>(null);
+  const [venueSaved, setVenueSaved] = useState(false);
+
+  const [keralaNonVegBusy, setKeralaNonVegBusy] = useState(false);
+  const [keralaNonVegError, setKeralaNonVegError] = useState<string | null>(null);
 
   const handleDelete = async (rsvp: RSVP) => {
     setDeleteBusyId(rsvp.id);
@@ -165,6 +201,59 @@ export default function AdminPage() {
     setPendingDeleteId(null);
   };
 
+  const saveVenues = async () => {
+    if (!venueForm) return;
+    setVenueBusy(true);
+    setVenueError(null);
+    setVenueSaved(false);
+    const { data, error } = await supabase
+      .from('site_config')
+      .update({
+        kolkata_venue: venueForm.kolkataVenue.trim() || null,
+        kolkata_map_url: venueForm.kolkataMapUrl.trim() || null,
+        kerala_venue: venueForm.keralaVenue.trim() || null,
+        kerala_map_url: venueForm.keralaMapUrl.trim() || null,
+      })
+      .eq('id', true)
+      .select(CONFIG_SELECT)
+      .maybeSingle();
+    setVenueBusy(false);
+    if (error) {
+      setVenueError(error.message);
+      return;
+    }
+    if (data) {
+      setConfig(data);
+      setVenueForm({
+        kolkataVenue: data.kolkata_venue ?? '',
+        kolkataMapUrl: data.kolkata_map_url ?? '',
+        keralaVenue: data.kerala_venue ?? '',
+        keralaMapUrl: data.kerala_map_url ?? '',
+      });
+      setVenueSaved(true);
+      setTimeout(() => setVenueSaved(false), 2500);
+    }
+  };
+
+  const toggleKeralaNonVeg = async () => {
+    if (!config) return;
+    const next = !config.kerala_non_veg;
+    setKeralaNonVegBusy(true);
+    setKeralaNonVegError(null);
+    const { data, error } = await supabase
+      .from('site_config')
+      .update({ kerala_non_veg: next })
+      .eq('id', true)
+      .select(CONFIG_SELECT)
+      .maybeSingle();
+    setKeralaNonVegBusy(false);
+    if (error) {
+      setKeralaNonVegError(error.message);
+      return;
+    }
+    if (data) setConfig(data);
+  };
+
   const toggleRsvpOpen = async () => {
     if (!config) return;
     const next = !config.rsvp_open;
@@ -174,7 +263,7 @@ export default function AdminPage() {
       .from('site_config')
       .update({ rsvp_open: next })
       .eq('id', true)
-      .select('rsvp_open, rsvp_closed_message, updated_at')
+      .select(CONFIG_SELECT)
       .maybeSingle();
     if (error) {
       setConfigError(error.message);
@@ -314,6 +403,142 @@ export default function AdminPage() {
                   : config.rsvp_open
                   ? 'Close RSVPs'
                   : 'Open RSVPs'}
+              </button>
+            )}
+          </div>
+
+          {/* Venues card */}
+          <div className="mb-6 p-5 bg-white border border-[rgba(59,47,47,0.1)] rounded-[2px]">
+            <p className="font-sans-body text-[11px] font-semibold uppercase tracking-[0.12em] text-[#3B2F2F]/60 mb-4">
+              Venues
+            </p>
+
+            {!venueForm ? (
+              <p className="font-sans-body text-xs text-[#3B2F2F]/50">Loading venues...</p>
+            ) : (
+              <div className="space-y-5">
+                {/* Kolkata */}
+                <div>
+                  <p className="font-sans-body text-sm font-semibold text-[#3B2F2F] mb-2 flex items-center">
+                    <span className="inline-block w-2 h-2 rounded-full bg-[#C4A055] mr-2" />
+                    Kolkata events
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-3">
+                    <input
+                      type="text"
+                      value={venueForm.kolkataVenue}
+                      onChange={(e) =>
+                        setVenueForm({ ...venueForm, kolkataVenue: e.target.value })
+                      }
+                      placeholder="e.g. New Town, Kolkata"
+                      className="bg-white border border-[rgba(59,47,47,0.15)] rounded-[2px] px-3 py-2 font-sans-body text-sm text-[#3B2F2F] placeholder:text-[#3B2F2F]/40 focus:border-[#C4A055] focus:outline-none focus:ring-2 focus:ring-[rgba(196,160,85,0.15)] transition-all duration-200"
+                    />
+                    <input
+                      type="url"
+                      value={venueForm.kolkataMapUrl}
+                      onChange={(e) =>
+                        setVenueForm({ ...venueForm, kolkataMapUrl: e.target.value })
+                      }
+                      placeholder="Google Maps URL (optional)"
+                      className="bg-white border border-[rgba(59,47,47,0.15)] rounded-[2px] px-3 py-2 font-sans-body text-sm text-[#3B2F2F] placeholder:text-[#3B2F2F]/40 focus:border-[#C4A055] focus:outline-none focus:ring-2 focus:ring-[rgba(196,160,85,0.15)] transition-all duration-200"
+                    />
+                  </div>
+                </div>
+
+                {/* Kerala (Pala) */}
+                <div>
+                  <p className="font-sans-body text-sm font-semibold text-[#3B2F2F] mb-2 flex items-center">
+                    <span className="inline-block w-2 h-2 rounded-full bg-[#3D6B5B] mr-2" />
+                    Kerala (Pala)
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-3">
+                    <input
+                      type="text"
+                      value={venueForm.keralaVenue}
+                      onChange={(e) =>
+                        setVenueForm({ ...venueForm, keralaVenue: e.target.value })
+                      }
+                      placeholder="e.g. Pala, Kerala"
+                      className="bg-white border border-[rgba(59,47,47,0.15)] rounded-[2px] px-3 py-2 font-sans-body text-sm text-[#3B2F2F] placeholder:text-[#3B2F2F]/40 focus:border-[#C4A055] focus:outline-none focus:ring-2 focus:ring-[rgba(196,160,85,0.15)] transition-all duration-200"
+                    />
+                    <input
+                      type="url"
+                      value={venueForm.keralaMapUrl}
+                      onChange={(e) =>
+                        setVenueForm({ ...venueForm, keralaMapUrl: e.target.value })
+                      }
+                      placeholder="Google Maps URL (optional)"
+                      className="bg-white border border-[rgba(59,47,47,0.15)] rounded-[2px] px-3 py-2 font-sans-body text-sm text-[#3B2F2F] placeholder:text-[#3B2F2F]/40 focus:border-[#C4A055] focus:outline-none focus:ring-2 focus:ring-[rgba(196,160,85,0.15)] transition-all duration-200"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-4 pt-1">
+                  {venueError && (
+                    <p className="font-sans-body text-xs text-[#7B2D41]">{venueError}</p>
+                  )}
+                  {venueSaved && !venueError && (
+                    <p className="font-sans-body text-xs text-[#3D6B5B]">Saved.</p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={saveVenues}
+                    disabled={venueBusy}
+                    className="font-sans-body text-xs font-semibold uppercase tracking-[0.12em] bg-[#3B2F2F] text-white px-6 py-2.5 hover:bg-[#C4A055] transition-colors duration-300 disabled:opacity-60"
+                  >
+                    {venueBusy ? 'Saving...' : 'Save venues'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Catering card — Kerala veg/non-veg toggle */}
+          <div className="mb-6 p-5 bg-white border border-[rgba(59,47,47,0.1)] rounded-[2px] flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="min-w-0">
+              <p className="font-sans-body text-[11px] font-semibold uppercase tracking-[0.12em] text-[#3B2F2F]/60 mb-1">
+                Catering &middot; Kerala
+              </p>
+              {config ? (
+                <>
+                  <p className="font-sans-body text-sm text-[#3B2F2F]">
+                    {config.kerala_non_veg ? (
+                      <>
+                        <span className="inline-block w-2 h-2 rounded-full bg-[#3D6B5B] mr-2 align-middle" />
+                        Non-vegetarian options available &mdash; guests see a Veg/Non-Veg radio in the Kerala details panel of the RSVP form.
+                      </>
+                    ) : (
+                      <>
+                        <span className="inline-block w-2 h-2 rounded-full bg-[#C4A055] mr-2 align-middle" />
+                        Vegetarian only &mdash; the Kerala dietary question is hidden from the RSVP form.
+                      </>
+                    )}
+                  </p>
+                  {keralaNonVegError && (
+                    <p className="font-sans-body text-xs text-[#7B2D41] mt-1">
+                      {keralaNonVegError}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="font-sans-body text-xs text-[#3B2F2F]/50">Loading...</p>
+              )}
+            </div>
+            {config && (
+              <button
+                onClick={toggleKeralaNonVeg}
+                disabled={keralaNonVegBusy}
+                className={`font-sans-body text-xs font-semibold uppercase tracking-[0.12em] px-6 py-3 transition-colors duration-300 disabled:opacity-60 self-start md:self-auto whitespace-nowrap ${
+                  config.kerala_non_veg
+                    ? 'bg-[#C4A055] text-white hover:bg-[#3B2F2F]'
+                    : 'bg-[#3D6B5B] text-white hover:bg-[#3B2F2F]'
+                }`}
+              >
+                {keralaNonVegBusy
+                  ? 'Saving...'
+                  : config.kerala_non_veg
+                  ? 'Switch to veg-only'
+                  : 'Enable non-veg'}
               </button>
             )}
           </div>

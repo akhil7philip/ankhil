@@ -1,53 +1,52 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ScrollReveal from '@/components/ScrollReveal';
+import { supabase } from '@/lib/supabase';
 
 interface FAQItem {
   question: string;
   answer: string;
 }
 
-const faqData: FAQItem[] = [
-  {
-    question: 'Which events should I attend?',
-    answer:
-      'All events are open to all guests! However, if you can only make select events, the Reception (July 6) and the Wedding Ceremony (July 8) are the most important. The Sangeet on July 7 is also a wonderful celebration not to be missed.',
-  },
-  {
-    question: 'What should I wear?',
-    answer:
-      'Each event has a suggested dress code noted in the Events section. For the Wedding Ceremony, traditional Indian attire is encouraged but not required. For the Reception and Sangeet, festive/cocktail attire is perfect. For Kerala, smart casual is appropriate.',
-  },
-  // {
-  //   question: 'How do I travel between Kolkata and Kerala?',
-  //   answer:
-  //     'The nearest airport to Pala/Kottayam is Cochin International (COK), about a 2-hour drive. Direct flights between Kolkata (CCU) and Kochi (COK) take about 2.5-3 hours.',
-  // },
-  {
-    question: 'Will accommodation be provided?',
-    answer:
-      'Please fill out the RSVP form with your accommodation preference. We can look into it and share accommodation details closer to the date. Note that we are unable to provide accommodation for everyone.',
-  },
-  {
-    question: 'What food will be served?',
-    answer:
-      'The Kolkata events are fully vegetarian. The Kerala reception will have both vegetarian and non-vegetarian options, served by separate caterers. If you have specific dietary restrictions or allergies, please let us know in the RSVP form.',
-  },
-  {
-    question: 'What about gifts?',
-    answer:
-      'Your presence is the greatest gift. Having you celebrate this day with us — in person or in spirit — is more than enough.',
-  },
-  {
-    question: 'Will there be a livestream?',
-    answer:
-      'For loved ones who can\'t travel, we plan to share a livestream link for the main ceremony closer to the date. If you\'d like to be sent the link, please let us know in the RSVP form or email us.',
-  },
-  {
-    question: 'Who should I contact for more help?',
-    answer:
-      'For any questions, feel free to reach out to us at support@ankhil.club or call +91-8373987643.',
-  },
-];
+function buildFaqData(keralaNonVeg: boolean): FAQItem[] {
+  return [
+    {
+      question: 'Which events should I attend?',
+      answer:
+        'All events are open to all guests! Guests are encouraged to attend as many events as possible.',
+    },
+    {
+      question: 'What should I wear?',
+      answer:
+        'Each event has a suggested dress code noted in the Events section. For the Wedding Ceremony, traditional Indian attire is encouraged but not required.',
+    },
+    {
+      question: 'Will accommodation be provided?',
+      answer:
+        'Please fill out the RSVP form with your accommodation preference. We will look into it and share accommodation details closer to the date.',
+    },
+    {
+      question: 'What food will be served?',
+      answer: keralaNonVeg
+        ? 'The Kolkata events are fully vegetarian. The Kerala reception has both vegetarian and non-vegetarian options — please indicate your preference in the RSVP.'
+        : 'Only vegetarian food will be served at both weddings.',
+    },
+    {
+      question: 'What about gifts?',
+      answer:
+        'Your presence is the greatest gift. Having you celebrate this day with us — in person or in spirit — is more than enough.',
+    },
+    {
+      question: 'Will there be a livestream?',
+      answer:
+        "For loved ones who can't travel, we plan to share a livestream link for the main ceremony closer to the date. If you'd like to be sent the link, please let us know in the RSVP form or email us.",
+    },
+    {
+      question: 'Who should I contact for more help?',
+      answer:
+        'For any questions, feel free to reach out to us at support@ankhil.club or call +91-8373987643.',
+    },
+  ];
+}
 
 function AccordionItem({ item }: { item: FAQItem }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -89,6 +88,25 @@ function AccordionItem({ item }: { item: FAQItem }) {
 }
 
 export default function FAQSection() {
+  const [keralaNonVeg, setKeralaNonVeg] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const { data } = await supabase
+        .from('site_config')
+        .select('kerala_non_veg')
+        .maybeSingle();
+      if (!cancelled && data) setKeralaNonVeg(Boolean(data.kerala_non_veg));
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const faqData = useMemo(() => buildFaqData(keralaNonVeg), [keralaNonVeg]);
+
   return (
     <section id="faq" className="bg-[#3B2F2F] py-[60px] md:py-[100px] px-5 md:px-10">
       <div className="max-w-[800px] mx-auto">
@@ -101,7 +119,7 @@ export default function FAQSection() {
 
         <div className="space-y-3">
           {faqData.map((item, i) => (
-            <ScrollReveal key={i} delay={i * 0.1}>
+            <ScrollReveal key={item.question} delay={i * 0.1}>
               <AccordionItem item={item} />
             </ScrollReveal>
           ))}

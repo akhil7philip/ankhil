@@ -10,6 +10,7 @@ gsap.registerPlugin(ScrollTrigger);
 interface SiteConfig {
   rsvp_open: boolean;
   rsvp_closed_message: string | null;
+  kerala_non_veg: boolean;
 }
 
 const DEFAULT_CLOSED_MESSAGE =
@@ -19,14 +20,18 @@ export default function RSVPSection() {
   // Render optimistically as "open". If the config fetch comes back closed,
   // we'll swap to the closed card. Avoids a loading flash on the most common
   // path (open) and keeps the server-side trigger as the real enforcement.
-  const [config, setConfig] = useState<SiteConfig>({ rsvp_open: true, rsvp_closed_message: null });
+  const [config, setConfig] = useState<SiteConfig>({
+    rsvp_open: true,
+    rsvp_closed_message: null,
+    kerala_non_veg: false,
+  });
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       const { data, error } = await supabase
         .from('site_config')
-        .select('rsvp_open, rsvp_closed_message')
+        .select('rsvp_open, rsvp_closed_message, kerala_non_veg')
         .maybeSingle();
       if (cancelled) return;
       if (error) {
@@ -39,6 +44,7 @@ export default function RSVPSection() {
         setConfig({
           rsvp_open: data.rsvp_open,
           rsvp_closed_message: data.rsvp_closed_message,
+          kerala_non_veg: Boolean(data.kerala_non_veg),
         });
       }
     }
@@ -105,7 +111,11 @@ export default function RSVPSection() {
 
         {config.rsvp_open ? (
           <ScrollReveal delay={0.15}>
-            <RSVPForm mode="create" onSubmit={handleSubmit} />
+            <RSVPForm
+              mode="create"
+              onSubmit={handleSubmit}
+              keralaNonVeg={config.kerala_non_veg}
+            />
           </ScrollReveal>
         ) : (
           <ScrollReveal delay={0.15}>

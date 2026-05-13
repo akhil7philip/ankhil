@@ -188,7 +188,7 @@ export default function HeroSection({ lenis }: HeroSectionProps) {
             className="font-sans-body text-sm md:text-base text-white/80 leading-relaxed mt-1"
             style={{ textShadow: '0 1px 8px rgba(0,0,0,0.5)' }}
           >
-            Kerala Reception &bull; Pala / Kottayam &bull; July 18 &ndash; 19, 2026
+            Reception &bull; Pala, Kerala &bull; July 18, 2026
           </p>
         </div>
 
