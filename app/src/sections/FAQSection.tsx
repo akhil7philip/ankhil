@@ -89,15 +89,22 @@ function AccordionItem({ item }: { item: FAQItem }) {
 
 export default function FAQSection() {
   const [keralaNonVeg, setKeralaNonVeg] = useState(false);
+  // Optimistic-visible: render FAQ until the config fetch confirms it's
+  // been hidden. Avoids a "FAQ disappears for a frame after page load"
+  // flash on the common path where it stays visible.
+  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       const { data } = await supabase
         .from('site_config')
-        .select('kerala_non_veg')
+        .select('kerala_non_veg, faq_visible')
         .maybeSingle();
-      if (!cancelled && data) setKeralaNonVeg(Boolean(data.kerala_non_veg));
+      if (cancelled || !data) return;
+      setKeralaNonVeg(Boolean(data.kerala_non_veg));
+      // faq_visible defaults to true; only hide on an explicit false.
+      if (data.faq_visible === false) setVisible(false);
     }
     load();
     return () => {
@@ -106,6 +113,8 @@ export default function FAQSection() {
   }, []);
 
   const faqData = useMemo(() => buildFaqData(keralaNonVeg), [keralaNonVeg]);
+
+  if (!visible) return null;
 
   return (
     <section id="faq" className="bg-[#3B2F2F] py-[60px] md:py-[100px] px-5 md:px-10">
