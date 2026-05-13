@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import type Lenis from 'lenis';
-import { supabase } from '@/lib/supabase';
 
 interface NavigationProps {
   lenis: Lenis | null;
+  /** When false the "FAQ" nav entry is dropped (because FAQSection isn't
+   * rendered either). Lifted to HomePage. */
+  faqVisible?: boolean;
 }
 
 const navItems = [
@@ -16,30 +18,10 @@ const navItems = [
   { label: 'Gallery', target: 'gallery' },
 ] as const;
 
-export default function Navigation({ lenis }: NavigationProps) {
+export default function Navigation({ lenis, faqVisible = true }: NavigationProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>(null);
-  // Optimistic-visible. Hidden only when site_config.faq_visible is
-  // explicitly false. Mirrors the FAQSection's own gate so the two stay
-  // in sync — nav stops linking to a section that won't render.
-  const [faqVisible, setFaqVisible] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      const { data } = await supabase
-        .from('site_config')
-        .select('faq_visible')
-        .maybeSingle();
-      if (cancelled || !data) return;
-      if (data.faq_visible === false) setFaqVisible(false);
-    }
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const visibleNavItems = faqVisible
     ? navItems

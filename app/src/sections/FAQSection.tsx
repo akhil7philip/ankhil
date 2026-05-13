@@ -87,24 +87,25 @@ function AccordionItem({ item }: { item: FAQItem }) {
   );
 }
 
-export default function FAQSection() {
+interface FAQSectionProps {
+  /** When false, the section is not rendered. Lifted to HomePage so the
+   * Navigation, GallerySection (background swap), and ScrollTrigger.refresh
+   * all see the same value. */
+  visible?: boolean;
+}
+
+export default function FAQSection({ visible = true }: FAQSectionProps = {}) {
   const [keralaNonVeg, setKeralaNonVeg] = useState(false);
-  // Optimistic-visible: render FAQ until the config fetch confirms it's
-  // been hidden. Avoids a "FAQ disappears for a frame after page load"
-  // flash on the common path where it stays visible.
-  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       const { data } = await supabase
         .from('site_config')
-        .select('kerala_non_veg, faq_visible')
+        .select('kerala_non_veg')
         .maybeSingle();
       if (cancelled || !data) return;
       setKeralaNonVeg(Boolean(data.kerala_non_veg));
-      // faq_visible defaults to true; only hide on an explicit false.
-      if (data.faq_visible === false) setVisible(false);
     }
     load();
     return () => {
