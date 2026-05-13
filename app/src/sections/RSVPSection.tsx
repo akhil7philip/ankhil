@@ -11,6 +11,8 @@ interface SiteConfig {
   rsvp_open: boolean;
   rsvp_closed_message: string | null;
   kerala_non_veg: boolean;
+  kolkata_railway_station: string | null;
+  kerala_railway_station: string | null;
 }
 
 const DEFAULT_CLOSED_MESSAGE =
@@ -24,6 +26,8 @@ export default function RSVPSection() {
     rsvp_open: true,
     rsvp_closed_message: null,
     kerala_non_veg: false,
+    kolkata_railway_station: null,
+    kerala_railway_station: null,
   });
 
   useEffect(() => {
@@ -31,7 +35,9 @@ export default function RSVPSection() {
     async function load() {
       const { data, error } = await supabase
         .from('site_config')
-        .select('rsvp_open, rsvp_closed_message, kerala_non_veg')
+        .select(
+          'rsvp_open, rsvp_closed_message, kerala_non_veg, kolkata_railway_station, kerala_railway_station'
+        )
         .maybeSingle();
       if (cancelled) return;
       if (error) {
@@ -45,6 +51,8 @@ export default function RSVPSection() {
           rsvp_open: data.rsvp_open,
           rsvp_closed_message: data.rsvp_closed_message,
           kerala_non_veg: Boolean(data.kerala_non_veg),
+          kolkata_railway_station: data.kolkata_railway_station,
+          kerala_railway_station: data.kerala_railway_station,
         });
       }
     }
@@ -115,6 +123,8 @@ export default function RSVPSection() {
               mode="create"
               onSubmit={handleSubmit}
               keralaNonVeg={config.kerala_non_veg}
+              kolkataRailwayStation={config.kolkata_railway_station ?? undefined}
+              keralaRailwayStation={config.kerala_railway_station ?? undefined}
             />
           </ScrollReveal>
         ) : (

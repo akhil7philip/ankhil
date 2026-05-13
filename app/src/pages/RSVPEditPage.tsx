@@ -15,11 +15,13 @@ interface RsvpRow {
   kolkata_departure: string | null;
   kolkata_accommodation: boolean | null;
   kolkata_airport_pickup: boolean | null;
+  kolkata_train_pickup: boolean | null;
   attending_kerala: boolean | null;
   kerala_arrival: string | null;
   kerala_departure: string | null;
   kerala_accommodation: boolean | null;
   kerala_airport_pickup: boolean | null;
+  kerala_train_pickup: boolean | null;
   special_notes: string | null;
 }
 
@@ -43,6 +45,12 @@ function pickupLabel(b: boolean | null): string {
   return '';
 }
 
+function trainPickupLabel(b: boolean | null): string {
+  if (b === true) return 'Yes, I need train station pickup';
+  if (b === false) return "No, I'll arrange my own transport";
+  return '';
+}
+
 function rowToFormData(row: RsvpRow): Partial<RsvpFormData> {
   return {
     fullName: row.full_name ?? '',
@@ -55,10 +63,12 @@ function rowToFormData(row: RsvpRow): Partial<RsvpFormData> {
     kolkataEvents: row.kolkata_events ?? [],
     kolkataAccommodation: accommodationLabel(row.kolkata_accommodation),
     kolkataAirportPickup: pickupLabel(row.kolkata_airport_pickup),
+    kolkataTrainPickup: trainPickupLabel(row.kolkata_train_pickup),
     kolkataArrival: toLocalDatetime(row.kolkata_arrival),
     kolkataDeparture: toLocalDatetime(row.kolkata_departure),
     keralaAccommodation: accommodationLabel(row.kerala_accommodation),
     keralaAirportPickup: pickupLabel(row.kerala_airport_pickup),
+    keralaTrainPickup: trainPickupLabel(row.kerala_train_pickup),
     keralaArrival: toLocalDatetime(row.kerala_arrival),
     keralaDeparture: toLocalDatetime(row.kerala_departure),
     specialNotes: row.special_notes ?? '',
@@ -80,6 +90,8 @@ export default function RSVPEditPage() {
   const { token } = useParams<{ token: string }>();
   const [load, setLoad] = useState<LoadState>({ kind: 'loading' });
   const [keralaNonVeg, setKeralaNonVeg] = useState(false);
+  const [kolkataRailwayStation, setKolkataRailwayStation] = useState<string | undefined>(undefined);
+  const [keralaRailwayStation, setKeralaRailwayStation] = useState<string | undefined>(undefined);
   const isAdmin =
     typeof window !== 'undefined' &&
     window.sessionStorage.getItem(ADMIN_AUTH_KEY) === 'true';
@@ -113,17 +125,19 @@ export default function RSVPEditPage() {
     };
   }, [token]);
 
-  // Pick up the Kerala non-veg toggle so the dietary radio shows the same
-  // way it would for a fresh submission.
+  // Pick up the Kerala non-veg toggle and pickup-station strings so the
+  // form mirrors what a fresh submission would see.
   useEffect(() => {
     let cancelled = false;
     async function loadConfig() {
       const { data } = await supabase
         .from('site_config')
-        .select('kerala_non_veg')
+        .select('kerala_non_veg, kolkata_railway_station, kerala_railway_station')
         .maybeSingle();
-      if (cancelled) return;
-      if (data) setKeralaNonVeg(Boolean(data.kerala_non_veg));
+      if (cancelled || !data) return;
+      setKeralaNonVeg(Boolean(data.kerala_non_veg));
+      setKolkataRailwayStation(data.kolkata_railway_station ?? undefined);
+      setKeralaRailwayStation(data.kerala_railway_station ?? undefined);
     }
     loadConfig();
     return () => {
@@ -206,6 +220,8 @@ export default function RSVPEditPage() {
             initial={load.data}
             onSubmit={handleSubmit}
             keralaNonVeg={keralaNonVeg}
+            kolkataRailwayStation={kolkataRailwayStation}
+            keralaRailwayStation={keralaRailwayStation}
           />
         )}
       </div>

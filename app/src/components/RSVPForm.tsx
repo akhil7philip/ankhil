@@ -16,10 +16,12 @@ export interface RsvpFormData {
   kolkataEvents: string[];
   kolkataAccommodation: string;
   kolkataAirportPickup: string;
+  kolkataTrainPickup: string;
   kolkataArrival: string;
   kolkataDeparture: string;
   keralaAccommodation: string;
   keralaAirportPickup: string;
+  keralaTrainPickup: string;
   keralaArrival: string;
   keralaDeparture: string;
   specialNotes: string;
@@ -37,11 +39,13 @@ export interface RsvpPayload {
   kolkata_departure: string | null;
   kolkata_accommodation: boolean | null;
   kolkata_airport_pickup: boolean | null;
+  kolkata_train_pickup: boolean | null;
   attending_kerala: boolean;
   kerala_arrival: string | null;
   kerala_departure: string | null;
   kerala_accommodation: boolean | null;
   kerala_airport_pickup: boolean | null;
+  kerala_train_pickup: boolean | null;
   special_notes: string | null;
 }
 
@@ -56,6 +60,10 @@ export interface RSVPFormProps {
   /** When true, the Kerala details panel includes a Veg/Non-Veg radio. The
    * field is required only when the guest is also attending Kerala. */
   keralaNonVeg?: boolean;
+  /** Configured pickup stations — shown in the form helper text so guests
+   * know where they'll be picked up from. Defaults are sensible fallbacks. */
+  kolkataRailwayStation?: string;
+  keralaRailwayStation?: string;
 }
 
 const emptyForm: RsvpFormData = {
@@ -72,10 +80,12 @@ const emptyForm: RsvpFormData = {
   kolkataEvents: [],
   kolkataAccommodation: '',
   kolkataAirportPickup: '',
+  kolkataTrainPickup: '',
   kolkataArrival: '',
   kolkataDeparture: '',
   keralaAccommodation: '',
   keralaAirportPickup: '',
+  keralaTrainPickup: '',
   keralaArrival: '',
   keralaDeparture: '',
   specialNotes: '',
@@ -224,18 +234,27 @@ function buildPayload(form: RsvpFormData, kolkataTravel: boolean, keralaTravel: 
     kolkata_departure: kolkataTravel ? toIso(form.kolkataDeparture) : null,
     kolkata_accommodation: form.attendingKolkata ? toBool(form.kolkataAccommodation) : null,
     kolkata_airport_pickup: form.attendingKolkata ? toBool(form.kolkataAirportPickup) : null,
+    kolkata_train_pickup: form.attendingKolkata ? toBool(form.kolkataTrainPickup) : null,
     attending_kerala: form.attendingKerala,
     kerala_arrival: keralaTravel ? toIso(form.keralaArrival) : null,
     kerala_departure: keralaTravel ? toIso(form.keralaDeparture) : null,
     kerala_accommodation: form.attendingKerala ? toBool(form.keralaAccommodation) : null,
     kerala_airport_pickup: form.attendingKerala ? toBool(form.keralaAirportPickup) : null,
+    kerala_train_pickup: form.attendingKerala ? toBool(form.keralaTrainPickup) : null,
     special_notes: form.specialNotes.trim() || null,
   };
 }
 
 type State = 'idle' | 'submitting' | 'success' | 'error';
 
-export default function RSVPForm({ mode, initial, onSubmit, keralaNonVeg = false }: RSVPFormProps) {
+export default function RSVPForm({
+  mode,
+  initial,
+  onSubmit,
+  keralaNonVeg = false,
+  kolkataRailwayStation,
+  keralaRailwayStation,
+}: RSVPFormProps) {
   const [form, setForm] = useState<RsvpFormData>({ ...emptyForm, ...initial });
   const [errors, setErrors] = useState<Partial<Record<keyof RsvpFormData, string>>>({});
   const [state, setState] = useState<State>('idle');
@@ -275,9 +294,15 @@ export default function RSVPForm({ mode, initial, onSubmit, keralaNonVeg = false
   }, []);
 
   const kolkataNeedsTravelInfo =
-    form.attendingKolkata && (isYes(form.kolkataAccommodation) || isYes(form.kolkataAirportPickup));
+    form.attendingKolkata &&
+    (isYes(form.kolkataAccommodation) ||
+      isYes(form.kolkataAirportPickup) ||
+      isYes(form.kolkataTrainPickup));
   const keralaNeedsTravelInfo =
-    form.attendingKerala && (isYes(form.keralaAccommodation) || isYes(form.keralaAirportPickup));
+    form.attendingKerala &&
+    (isYes(form.keralaAccommodation) ||
+      isYes(form.keralaAirportPickup) ||
+      isYes(form.keralaTrainPickup));
 
   const validate = (): boolean => {
     const newErrors: Partial<Record<keyof RsvpFormData, string>> = {};
@@ -618,12 +643,35 @@ export default function RSVPForm({ mode, initial, onSubmit, keralaNonVeg = false
             />
           </div>
 
+          <div className="mb-5">
+            <label className={labelClasses}>Train Station Pickup</label>
+            <RadioGroup
+              name="kolkata-train-pickup"
+              options={['Yes, I need train station pickup', 'No, I\'ll arrange my own transport']}
+              value={form.kolkataTrainPickup}
+              onChange={(val) => updateField('kolkataTrainPickup', val)}
+              disabled={isSubmitting}
+            />
+            {kolkataRailwayStation && (
+              <p className="font-sans-body text-[11px] text-[#3B2F2F]/55 mt-2">
+                If yes, we&rsquo;ll arrange pickup from{' '}
+                <span className="text-[#3B2F2F]/75 font-semibold">{kolkataRailwayStation}</span>.
+              </p>
+            )}
+          </div>
+
           {kolkataNeedsTravelInfo && (
             <div className="mt-6 pt-6 border-t border-[rgba(196,160,85,0.25)]">
               <p className="font-sans-body text-[13px] text-[#3B2F2F]/70 mb-4">
-                To help us coordinate {isYes(form.kolkataAccommodation) ? 'accommodation' : ''}
-                {isYes(form.kolkataAccommodation) && isYes(form.kolkataAirportPickup) ? ' and ' : ''}
-                {isYes(form.kolkataAirportPickup) ? 'your pickup' : ''}, please share your expected travel dates.
+                To help us coordinate{' '}
+                {[
+                  isYes(form.kolkataAccommodation) && 'accommodation',
+                  (isYes(form.kolkataAirportPickup) || isYes(form.kolkataTrainPickup)) &&
+                    'your pickup',
+                ]
+                  .filter(Boolean)
+                  .join(' and ')}
+                , please share your expected travel dates.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
@@ -723,12 +771,34 @@ export default function RSVPForm({ mode, initial, onSubmit, keralaNonVeg = false
             />
           </div>
 
+          <div className="mb-5">
+            <label className={labelClasses}>Train Station Pickup</label>
+            <RadioGroup
+              name="kerala-train-pickup"
+              options={['Yes, I need train station pickup', 'No, I\'ll arrange my own transport']}
+              value={form.keralaTrainPickup}
+              onChange={(val) => updateField('keralaTrainPickup', val)}
+              disabled={isSubmitting}
+            />
+            {keralaRailwayStation && (
+              <p className="font-sans-body text-[11px] text-[#3B2F2F]/55 mt-2">
+                If yes, we&rsquo;ll arrange pickup from <span className="text-[#3B2F2F]/75 font-semibold">{keralaRailwayStation}</span>.
+              </p>
+            )}
+          </div>
+
           {keralaNeedsTravelInfo && (
             <div className="mt-6 pt-6 border-t border-[rgba(61,107,91,0.25)]">
               <p className="font-sans-body text-[13px] text-[#3B2F2F]/70 mb-4">
-                To help us coordinate {isYes(form.keralaAccommodation) ? 'accommodation' : ''}
-                {isYes(form.keralaAccommodation) && isYes(form.keralaAirportPickup) ? ' and ' : ''}
-                {isYes(form.keralaAirportPickup) ? 'your pickup' : ''}, please share your expected travel dates.
+                To help us coordinate{' '}
+                {[
+                  isYes(form.keralaAccommodation) && 'accommodation',
+                  (isYes(form.keralaAirportPickup) || isYes(form.keralaTrainPickup)) &&
+                    'your pickup',
+                ]
+                  .filter(Boolean)
+                  .join(' and ')}
+                , please share your expected travel dates.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
