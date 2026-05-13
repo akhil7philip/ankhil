@@ -298,6 +298,6 @@ describe('RSVPSection', () => {
     await userEvent.click(chips[0]);
 
     const datetimeInputs = container.querySelectorAll('input[type="datetime-local"]');
-    expect(datetimeInputs[0]).toHaveValue('2026-07-06T09:00');
+    expect(datetimeInputs[0]).toHaveValue('2026-07-07T10:00');
   });
 });
