@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type Lenis from 'lenis';
+import { supabase } from '@/lib/supabase';
 
 interface NavigationProps {
   lenis: Lenis | null;
@@ -13,12 +14,36 @@ const navItems = [
   { label: 'Travel', target: 'travel' },
   { label: 'FAQ', target: 'faq' },
   { label: 'Gallery', target: 'gallery' },
-];
+] as const;
 
 export default function Navigation({ lenis }: NavigationProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>(null);
+  // Optimistic-visible. Hidden only when site_config.faq_visible is
+  // explicitly false. Mirrors the FAQSection's own gate so the two stay
+  // in sync — nav stops linking to a section that won't render.
+  const [faqVisible, setFaqVisible] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const { data } = await supabase
+        .from('site_config')
+        .select('faq_visible')
+        .maybeSingle();
+      if (cancelled || !data) return;
+      if (data.faq_visible === false) setFaqVisible(false);
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const visibleNavItems = faqVisible
+    ? navItems
+    : navItems.filter((item) => item.target !== 'faq');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -104,7 +129,7 @@ export default function Navigation({ lenis }: NavigationProps) {
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-6">
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const isActive = activeSection === item.target;
               return (
                 <button
@@ -154,7 +179,7 @@ export default function Navigation({ lenis }: NavigationProps) {
         </button>
 
         <div className="flex flex-col items-center gap-8">
-          {navItems.map((item, i) => (
+          {visibleNavItems.map((item, i) => (
             <button
               key={item.target}
               onClick={() => handleNavClick(item.target)}

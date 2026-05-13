@@ -97,11 +97,12 @@ interface SiteConfig {
   kerala_map_url: string | null;
   kerala_railway_stations: string[] | null;
   kerala_non_veg: boolean;
+  faq_visible: boolean;
   updated_at: string;
 }
 
 const CONFIG_SELECT =
-  'rsvp_open, rsvp_closed_message, kolkata_venue, kolkata_map_url, kolkata_railway_stations, kerala_venue, kerala_map_url, kerala_railway_stations, kerala_non_veg, updated_at';
+  'rsvp_open, rsvp_closed_message, kolkata_venue, kolkata_map_url, kolkata_railway_stations, kerala_venue, kerala_map_url, kerala_railway_stations, kerala_non_veg, faq_visible, updated_at';
 
 interface VenueFormState {
   kolkataVenue: string;
@@ -211,6 +212,9 @@ export default function AdminPage() {
   const [keralaNonVegBusy, setKeralaNonVegBusy] = useState(false);
   const [keralaNonVegError, setKeralaNonVegError] = useState<string | null>(null);
 
+  const [faqBusy, setFaqBusy] = useState(false);
+  const [faqError, setFaqError] = useState<string | null>(null);
+
   const handleDelete = async (rsvp: RSVP) => {
     setDeleteBusyId(rsvp.id);
     setDeleteError(null);
@@ -260,6 +264,25 @@ export default function AdminPage() {
       setVenueSaved(true);
       setTimeout(() => setVenueSaved(false), 2500);
     }
+  };
+
+  const toggleFaqVisible = async () => {
+    if (!config) return;
+    const next = !config.faq_visible;
+    setFaqBusy(true);
+    setFaqError(null);
+    const { data, error } = await supabase
+      .from('site_config')
+      .update({ faq_visible: next })
+      .eq('id', true)
+      .select(CONFIG_SELECT)
+      .maybeSingle();
+    setFaqBusy(false);
+    if (error) {
+      setFaqError(error.message);
+      return;
+    }
+    if (data) setConfig(data);
   };
 
   const toggleKeralaNonVeg = async () => {
@@ -545,6 +568,54 @@ export default function AdminPage() {
                   </button>
                 </div>
               </div>
+            )}
+          </div>
+
+          {/* FAQ visibility card */}
+          <div className="mb-6 p-5 bg-white border border-[rgba(59,47,47,0.1)] rounded-[2px] flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="min-w-0">
+              <p className="font-sans-body text-[11px] font-semibold uppercase tracking-[0.12em] text-[#3B2F2F]/60 mb-1">
+                FAQ Section
+              </p>
+              {config ? (
+                <>
+                  <p className="font-sans-body text-sm text-[#3B2F2F]">
+                    {config.faq_visible ? (
+                      <>
+                        <span className="inline-block w-2 h-2 rounded-full bg-[#3D6B5B] mr-2 align-middle" />
+                        Visible &mdash; guests see the FAQ section and the FAQ nav link.
+                      </>
+                    ) : (
+                      <>
+                        <span className="inline-block w-2 h-2 rounded-full bg-[#7B2D41] mr-2 align-middle" />
+                        Hidden &mdash; the FAQ section is not rendered and the FAQ nav link is dropped.
+                      </>
+                    )}
+                  </p>
+                  {faqError && (
+                    <p className="font-sans-body text-xs text-[#7B2D41] mt-1">{faqError}</p>
+                  )}
+                </>
+              ) : (
+                <p className="font-sans-body text-xs text-[#3B2F2F]/50">Loading...</p>
+              )}
+            </div>
+            {config && (
+              <button
+                onClick={toggleFaqVisible}
+                disabled={faqBusy}
+                className={`font-sans-body text-xs font-semibold uppercase tracking-[0.12em] px-6 py-3 transition-colors duration-300 disabled:opacity-60 self-start md:self-auto whitespace-nowrap ${
+                  config.faq_visible
+                    ? 'bg-[#7B2D41] text-white hover:bg-[#3B2F2F]'
+                    : 'bg-[#3D6B5B] text-white hover:bg-[#3B2F2F]'
+                }`}
+              >
+                {faqBusy
+                  ? 'Saving...'
+                  : config.faq_visible
+                  ? 'Hide FAQ'
+                  : 'Show FAQ'}
+              </button>
             )}
           </div>
 
