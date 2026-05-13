@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import type Lenis from 'lenis';
 import DateTimePicker from '@/components/DateTimePicker';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -70,6 +71,9 @@ export interface RSVPFormProps {
    * that one. When empty, no train-pickup helper text is shown. */
   kolkataRailwayStations?: string[];
   keralaRailwayStations?: string[];
+  /** Lenis instance for smooth-scrolling the success card into view after
+   * submit. When absent, falls back to native window.scrollTo. */
+  lenis?: Lenis | null;
 }
 
 const emptyForm: RsvpFormData = {
@@ -272,6 +276,7 @@ export default function RSVPForm({
   keralaNonVeg = false,
   kolkataRailwayStations = EMPTY_STATIONS,
   keralaRailwayStations = EMPTY_STATIONS,
+  lenis,
 }: RSVPFormProps) {
   const [form, setForm] = useState<RsvpFormData>({ ...emptyForm, ...initial });
   const [errors, setErrors] = useState<Partial<Record<keyof RsvpFormData, string>>>({});
@@ -407,8 +412,17 @@ export default function RSVPForm({
     const section = successEl.closest('section') as HTMLElement | null;
     const scrollTarget = section ?? successEl;
     const navOffset = 60;
-    const top = scrollTarget.getBoundingClientRect().top + window.scrollY - navOffset;
-    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+
+    // Use Lenis when available — native window.scrollTo loses races against
+    // Lenis's wheel-event-driven smooth scrolling on the public site. Lenis
+    // is undefined on the /rsvp/edit/:token page (no smooth-scroll there)
+    // so we fall back to native scrollTo for that flow.
+    if (lenis) {
+      lenis.scrollTo(scrollTarget, { offset: -navOffset });
+    } else {
+      const top = scrollTarget.getBoundingClientRect().top + window.scrollY - navOffset;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }
 
     gsap.fromTo(
       successEl,
@@ -420,7 +434,7 @@ export default function RSVPForm({
       ScrollTrigger.refresh();
     });
     return () => cancelAnimationFrame(rafId);
-  }, [state]);
+  }, [state, lenis]);
 
   const isSubmitting = state === 'submitting';
   const submitLabel =

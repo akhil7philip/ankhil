@@ -37,7 +37,7 @@ function HomePage({ lenis }: { lenis: Lenis | null }) {
         <OurStorySection />
         <FamiliesSection />
         <EventsSection />
-        <RSVPSection />
+        <RSVPSection lenis={lenis} />
         <TravelSection />
         <FAQSection />
         <GallerySection />
