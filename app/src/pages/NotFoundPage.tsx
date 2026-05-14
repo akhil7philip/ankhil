@@ -7,7 +7,7 @@ export default function NotFoundPage() {
         {/* Blue */}
         <div className="mb-8 md:mb-10 flex justify-center">
           <img
-            src="/images/blue.jpg"
+            src="/images/blue_comp.jpg"
             alt="Blue, the dog, wearing cool sunglasses"
             className="w-[150px] h-[150px] md:w-[180px] md:h-[180px] rounded-full object-cover shadow-[0_6px_24px_rgba(59,47,47,0.2)] ring-2 ring-[#C4A055] ring-offset-4 ring-offset-[#F5F1EB]"
           />
