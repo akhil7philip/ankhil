@@ -9,9 +9,9 @@ interface GalleryImage {
 
 const galleryImages: GalleryImage[] = [
   { src: '/images/college_onam.jpg', alt: 'Akhil and Ankita celebrating Onam in college', aspectRatio: '5/6' },
-  { src: '/images/lego.jpg', alt: 'Akhil and Ankita with a New York Lego set', aspectRatio: '4/5' },
+  { src: '/images/lego_comp.jpg', alt: 'Akhil and Ankita with a New York Lego set', aspectRatio: '4/5' },
   { src: '/images/walking_pondy_lane.jpg', alt: 'Akhil and Ankita walking after a dinner date in Puducherry', aspectRatio: '2/3' },
-  { src: '/images/auto_ride.jpg', alt: 'A selfie during an auto ride', aspectRatio: '1/1' },
+  { src: '/images/auto_ride_comp.jpg', alt: 'A selfie during an auto ride', aspectRatio: '1/1' },
 ];
 
 interface GallerySectionProps {
