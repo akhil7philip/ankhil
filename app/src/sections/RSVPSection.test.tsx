@@ -104,10 +104,10 @@ describe('RSVPSection', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Please enter your full name/i)).toBeInTheDocument();
-      expect(screen.getByText(/Please enter your phone number/i)).toBeInTheDocument();
       expect(screen.getByText(/Please select at least one celebration/i)).toBeInTheDocument();
     });
-    // Dietary is no longer required, so no error about it.
+    // Phone + dietary are no longer required.
+    expect(screen.queryByText(/Please enter your phone number/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Please select your dietary preference/i)).not.toBeInTheDocument();
   });
 
@@ -202,21 +202,28 @@ describe('RSVPSection', () => {
     expect(datetimeInputs[1]).toHaveValue('');
   });
 
-  it('blocks submit when accommodation is requested but travel dates are blank', async () => {
+  it('accepts submit with blank travel dates even when accommodation is requested', async () => {
     render(<RSVPSection />);
 
     await userEvent.type(screen.getByPlaceholderText('Your full name'), 'Test User');
-    await userEvent.type(screen.getByPlaceholderText('+91-XXXXXXXXXX'), '9999999999');
     await userEvent.click(screen.getByLabelText(/Kolkata celebrations/i));
     await userEvent.click(screen.getByLabelText(/July 6 evening — Mehendi/i));
     await userEvent.click(screen.getByLabelText(/Yes, I need accommodation help/i));
 
     fireEvent.click(screen.getByRole('button', { name: /Submit RSVP/i }));
 
+    // Travel dates are no longer required; submission proceeds and arrival
+    // / departure end up null in the payload.
     await waitFor(() => {
-      expect(screen.getByText(/Please enter your expected arrival/i)).toBeInTheDocument();
-      expect(screen.getByText(/Please enter your expected departure/i)).toBeInTheDocument();
+      expect(insertFn).toHaveBeenCalled();
     });
+    expect(screen.queryByText(/Please enter your expected arrival/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Please enter your expected departure/i)).not.toBeInTheDocument();
+
+    const calls = insertFn.mock.calls as unknown as [Record<string, unknown>[]][];
+    const payload = calls[0][0][0];
+    expect(payload.kolkata_arrival).toBeNull();
+    expect(payload.kolkata_departure).toBeNull();
   });
 
   it('renders the closed card when site_config.rsvp_open is false', async () => {

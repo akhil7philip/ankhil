@@ -330,7 +330,8 @@ export default function RSVPForm({
   const validate = (): boolean => {
     const newErrors: Partial<Record<keyof RsvpFormData, string>> = {};
     if (!form.fullName.trim()) newErrors.fullName = 'Please enter your full name';
-    if (!form.phone.trim()) newErrors.phone = 'Please enter your phone number';
+    // Phone is no longer required — it's still the preferred way to reach
+    // guests, but plenty of family members will leave it blank.
     if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       newErrors.email = 'Please enter a valid email address';
     }
@@ -363,12 +364,13 @@ export default function RSVPForm({
       newErrors.keralaTrainPickupStation = 'Please choose your pickup station';
     }
     if (kolkataNeedsTravelInfo) {
-      if (!form.kolkataArrival) newErrors.kolkataArrival = 'Please enter your expected arrival';
-      if (!form.kolkataDeparture) newErrors.kolkataDeparture = 'Please enter your expected departure';
+      // Arrival / departure are no longer hard-required, even when the
+      // guest asks for accommodation or a pickup. Couple can follow up
+      // directly for missing details.
     }
     if (keralaNeedsTravelInfo) {
-      if (!form.keralaArrival) newErrors.keralaArrival = 'Please enter your expected arrival';
-      if (!form.keralaDeparture) newErrors.keralaDeparture = 'Please enter your expected departure';
+      // Arrival / departure are no longer hard-required (see Kolkata
+      // comment above).
     }
 
     setErrors(newErrors);
@@ -526,7 +528,7 @@ export default function RSVPForm({
 
           {/* Phone */}
           <div>
-            <label className={labelClasses}>Phone * (preferably WhatsApp)</label>
+            <label className={labelClasses}>Phone (preferably WhatsApp)</label>
             <input
               type="tel"
               inputMode="tel"
@@ -756,7 +758,7 @@ export default function RSVPForm({
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                  <label className={labelClasses}>Expected Arrival *</label>
+                  <label className={labelClasses}>Expected Arrival</label>
                   <DateTimePicker
                     value={form.kolkataArrival}
                     onChange={(val) => updateField('kolkataArrival', val)}
@@ -773,7 +775,7 @@ export default function RSVPForm({
                   )}
                 </div>
                 <div>
-                  <label className={labelClasses}>Expected Departure *</label>
+                  <label className={labelClasses}>Expected Departure</label>
                   <DateTimePicker
                     value={form.kolkataDeparture}
                     onChange={(val) => updateField('kolkataDeparture', val)}
@@ -914,7 +916,7 @@ export default function RSVPForm({
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                  <label className={labelClasses}>Expected Arrival *</label>
+                  <label className={labelClasses}>Expected Arrival</label>
                   <DateTimePicker
                     value={form.keralaArrival}
                     onChange={(val) => updateField('keralaArrival', val)}
@@ -931,7 +933,7 @@ export default function RSVPForm({
                   )}
                 </div>
                 <div>
-                  <label className={labelClasses}>Expected Departure *</label>
+                  <label className={labelClasses}>Expected Departure</label>
                   <DateTimePicker
                     value={form.keralaDeparture}
                     onChange={(val) => updateField('keralaDeparture', val)}
