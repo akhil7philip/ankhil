@@ -9,6 +9,7 @@ interface RsvpRow {
   email: string | null;
   dietary: string | null;
   guest_count: number | null;
+  not_attending: boolean | null;
   attending_kolkata: boolean | null;
   kolkata_events: string[] | null;
   kolkata_arrival: string | null;
@@ -60,6 +61,7 @@ function rowToFormData(row: RsvpRow): Partial<RsvpFormData> {
     email: row.email ?? '',
     guestCount: String(row.guest_count ?? 1),
     dietary: (row.dietary === 'veg' || row.dietary === 'non-veg' ? row.dietary : '') as RsvpFormData['dietary'],
+    notAttending: Boolean(row.not_attending),
     attendingKolkata: Boolean(row.attending_kolkata),
     attendingKerala: Boolean(row.attending_kerala),
     kolkataEvents: row.kolkata_events ?? [],
