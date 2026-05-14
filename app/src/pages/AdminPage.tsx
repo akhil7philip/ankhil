@@ -11,6 +11,7 @@ interface RSVP {
   email: string | null;
   dietary: string | null;
   guest_count: number;
+  not_attending: boolean | null;
   attending_kolkata: boolean;
   kolkata_events: string[] | null;
   kolkata_arrival: string | null;
@@ -367,6 +368,7 @@ export default function AdminPage() {
   const kolkataCount = rsvps.filter((r) => r.attending_kolkata).length;
   const keralaCount = rsvps.filter((r) => r.attending_kerala).length;
   const bothCount = rsvps.filter((r) => r.attending_kolkata && r.attending_kerala).length;
+  const regretsCount = rsvps.filter((r) => r.not_attending).length;
 
   return (
     <div className="min-h-screen bg-[#F5F1EB]">
@@ -376,7 +378,7 @@ export default function AdminPage() {
           <div>
             <h1 className="font-serif-display text-xl text-white">RSVP Submissions</h1>
             <p className="font-sans-body text-xs text-white/60 mt-0.5">
-              {total} total · {kolkataCount} Kolkata · {keralaCount} Kerala · {bothCount} Both
+              {total} total · {kolkataCount} Kolkata · {keralaCount} Kerala · {bothCount} Both · {regretsCount} Regrets
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -717,6 +719,11 @@ export default function AdminPage() {
                     >
                       <td className="font-sans-body text-sm text-[#3B2F2F] py-3 pr-4 whitespace-nowrap">
                         {r.full_name}
+                        {r.not_attending && (
+                          <span className="ml-2 text-[10px] font-semibold uppercase tracking-wider text-[#7B2D41] bg-[#7B2D41]/10 px-2 py-0.5 rounded align-middle">
+                            Regrets
+                          </span>
+                        )}
                       </td>
                       <td className="font-sans-body text-sm text-[#3B2F2F] py-3 pr-4 whitespace-nowrap">
                         {r.phone}

@@ -104,7 +104,7 @@ describe('RSVPSection', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Please enter your full name/i)).toBeInTheDocument();
-      expect(screen.getByText(/Please select at least one celebration/i)).toBeInTheDocument();
+      expect(screen.getByText(/Please tell us if you can join either celebration/i)).toBeInTheDocument();
     });
     // Phone + dietary are no longer required.
     expect(screen.queryByText(/Please enter your phone number/i)).not.toBeInTheDocument();

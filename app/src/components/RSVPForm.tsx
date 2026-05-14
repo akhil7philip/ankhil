@@ -12,6 +12,7 @@ export interface RsvpFormData {
   email: string;
   guestCount: string;
   dietary: 'veg' | 'non-veg' | '';
+  notAttending: boolean;
   attendingKolkata: boolean;
   attendingKerala: boolean;
   kolkataEvents: string[];
@@ -36,6 +37,7 @@ export interface RsvpPayload {
   email: string | null;
   dietary: 'veg' | 'non-veg';
   guest_count: number;
+  not_attending: boolean;
   attending_kolkata: boolean;
   kolkata_events: string[] | null;
   kolkata_arrival: string | null;
@@ -85,6 +87,7 @@ const emptyForm: RsvpFormData = {
   // attending Kerala. When the dietary radio is hidden, buildPayload defaults
   // to 'veg' so the DB always sees a valid value.
   dietary: '',
+  notAttending: false,
   attendingKolkata: false,
   attendingKerala: false,
   kolkataEvents: [],
@@ -240,6 +243,7 @@ function buildPayload(form: RsvpFormData, kolkataTravel: boolean, keralaTravel: 
     // or guest not attending Kerala). Keeps the DB column non-null.
     dietary: (form.dietary || 'veg') as 'veg' | 'non-veg',
     guest_count: parseInt(form.guestCount, 10) || 1,
+    not_attending: form.notAttending,
     attending_kolkata: form.attendingKolkata,
     kolkata_events: form.attendingKolkata ? form.kolkataEvents : null,
     kolkata_arrival: kolkataTravel ? toIso(form.kolkataArrival) : null,
@@ -335,8 +339,9 @@ export default function RSVPForm({
     if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       newErrors.email = 'Please enter a valid email address';
     }
-    if (!form.attendingKolkata && !form.attendingKerala) {
-      newErrors.attendingKolkata = 'Please select at least one celebration';
+    if (!form.attendingKolkata && !form.attendingKerala && !form.notAttending) {
+      newErrors.attendingKolkata =
+        'Please tell us if you can join either celebration, or pick "I won’t be able to attend"';
     }
     if (form.attendingKolkata && form.kolkataEvents.length === 0) {
       newErrors.kolkataEvents = 'Please select at least one Kolkata event';
@@ -457,7 +462,9 @@ export default function RSVPForm({
         </h3>
         <p className="font-sans-body text-base text-white/80 max-w-[480px] mx-auto">
           {mode === 'create'
-            ? "We're so grateful you'll be celebrating with us. We'll be in touch soon with more details."
+            ? form.notAttending
+              ? "Thank you for letting us know — we'll miss you. We'll keep you in our thoughts on the day."
+              : "We're so grateful you'll be celebrating with us. We'll be in touch soon with more details."
             : "Your RSVP has been updated. Thanks for letting us know!"}
         </p>
         {mode === 'create' && editUrl && (
@@ -590,7 +597,11 @@ export default function RSVPForm({
                 id="attending-kolkata"
                 type="checkbox"
                 checked={form.attendingKolkata}
-                onChange={(e) => updateField('attendingKolkata', e.target.checked)}
+                onChange={(e) => {
+                  // Picking a city implies attending — clear the regrets flag.
+                  if (e.target.checked && form.notAttending) updateField('notAttending', false);
+                  updateField('attendingKolkata', e.target.checked);
+                }}
                 disabled={isSubmitting}
                 className="peer absolute inset-0 opacity-0 cursor-pointer z-10"
               />
@@ -614,7 +625,10 @@ export default function RSVPForm({
                 id="attending-kerala"
                 type="checkbox"
                 checked={form.attendingKerala}
-                onChange={(e) => updateField('attendingKerala', e.target.checked)}
+                onChange={(e) => {
+                  if (e.target.checked && form.notAttending) updateField('notAttending', false);
+                  updateField('attendingKerala', e.target.checked);
+                }}
                 disabled={isSubmitting}
                 className="peer absolute inset-0 opacity-0 cursor-pointer z-10"
               />
@@ -629,6 +643,38 @@ export default function RSVPForm({
                 Pala reception
               </span>
               <p className="font-sans-body text-xs text-[#3B2F2F]/60">July 25, 2026 · Pala / Kottayam</p>
+            </div>
+          </label>
+
+          {/* Regrets — mutually exclusive with the two city checkboxes. */}
+          <label htmlFor="not-attending" className="flex items-start gap-3 cursor-pointer group pt-2 border-t border-[rgba(59,47,47,0.08)]">
+            <div className="relative w-4 h-4 mt-0.5">
+              <input
+                id="not-attending"
+                type="checkbox"
+                checked={form.notAttending}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    // Regrets clears any prior city selection.
+                    if (form.attendingKolkata) updateField('attendingKolkata', false);
+                    if (form.attendingKerala) updateField('attendingKerala', false);
+                  }
+                  updateField('notAttending', e.target.checked);
+                }}
+                disabled={isSubmitting}
+                className="peer absolute inset-0 opacity-0 cursor-pointer z-10"
+              />
+              <div className="w-4 h-4 border border-[rgba(59,47,47,0.3)] rounded-[2px] peer-checked:bg-[#7B2D41] peer-checked:border-[#7B2D41] transition-colors duration-200 flex items-center justify-center pointer-events-none">
+                <svg className={`w-2.5 h-2.5 text-white transition-opacity duration-200 ${form.notAttending ? 'opacity-100' : 'opacity-0'}`} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M2 6l3 3 5-5" />
+                </svg>
+              </div>
+            </div>
+            <div>
+              <span className="font-sans-body text-[15px] text-[#3B2F2F] group-hover:text-[#7B2D41] transition-colors duration-200">
+                I won&rsquo;t be able to attend
+              </span>
+              <p className="font-sans-body text-xs text-[#3B2F2F]/60">We&rsquo;ll miss you. Leave a note below if you&rsquo;d like.</p>
             </div>
           </label>
         </div>
