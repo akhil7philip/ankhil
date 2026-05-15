@@ -68,6 +68,7 @@ const kolkataEventsBase: EventItem[] = [
     date: 'July 8',
     name: 'Varmala & Reception',
     time: '6:00 PM onwards',
+    dressCode: 'Indian or Western Formals',
     notes:
       'The couple exchange floral garlands (varmala), followed by a reception with extended family and friends before the wedding ceremony later that night.',
     city: 'kolkata',
@@ -79,7 +80,7 @@ const kolkataEventsBase: EventItem[] = [
     date: 'July 8',
     name: 'Wedding Ceremony & Pheras',
     time: '10:30 PM – 12:30 AM (July 9)',
-    dressCode: 'Traditional Indian / Formal',
+    dressCode: 'Indian or Western Formals',
     notes:
       'The sacred Hindu rites — including the Pheras (seven circles around a holy fire) — that mark Ankita and Akhil as married. The ceremony runs about 2 hours; seating is provided.',
     city: 'kolkata',
@@ -94,6 +95,7 @@ const keralaEventsBase: EventItem[] = [
     date: 'July 25',
     name: 'Pala Reception',
     time: '6:00 PM onwards',
+    dressCode: 'Indian or Western Formals',
     notes:
       'A wedding reception with the couple, both families, friends and hometown community.',
     city: 'kerala',
