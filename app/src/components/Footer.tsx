@@ -29,19 +29,16 @@ export default function Footer() {
         </p>
 
         {/* Closing message */}
-        <p className="font-serif-display text-lg italic text-[#3B2F2F]/70 max-w-[400px] leading-relaxed mt-2">
+        <p className="font-serif-display text-sm md:text-base italic text-[#3B2F2F]/70 max-w-[400px] leading-relaxed">
           With love, gratitude, and excitement — we can't wait to celebrate with you.
         </p>
 
-        {/* Privacy note */}
-        <p className="font-sans-body text-[11px] text-[#3B2F2F]/50 max-w-[420px] leading-relaxed mt-4">
-          Your information is used only for wedding planning and will not be shared.
-        </p>
-
-        {/* Copyright + last updated */}
-        <p className="font-sans-body text-[10px] tracking-[0.1em] text-[#3B2F2F]/50 mt-2">
-          &copy; 2026 Ankita &amp; Akhil &middot; Updated May 12, 2026
-        </p>
+        {/* Meta cluster */}
+        <div className="flex flex-col items-center gap-2">
+          <p className="font-sans-body text-xs tracking-[0.1em] text-[#3B2F2F]/50">
+            &copy; 2026 Ankita &amp; Akhil
+          </p>
+        </div>
       </ScrollReveal>
     </footer>
   );
