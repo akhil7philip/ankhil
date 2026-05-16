@@ -5,22 +5,28 @@ import userEvent from '@testing-library/user-event';
 import AdminPage from './AdminPage';
 
 const maybeSingleFn = vi.fn();
-const selectFn = vi.fn(() => ({ maybeSingle: maybeSingleFn }));
-const updateFn = vi.fn(() => ({ eq: () => ({ select: () => ({ maybeSingle: maybeSingleFn }) }) }));
-const deleteFn = vi.fn(() => ({ eq: () => Promise.resolve({ error: null }) }));
-const orderFn = vi.fn(() => ({ select: selectFn }));
+const configSelectFn = vi.fn(() => ({ maybeSingle: maybeSingleFn }));
+const configUpdateFn = vi.fn(() => ({
+  eq: vi.fn(() => ({
+    select: vi.fn(() => ({ maybeSingle: maybeSingleFn })),
+  })),
+}));
+const rsvpsSelectFn = vi.fn(() => ({
+  order: vi.fn(() => Promise.resolve({ data: [], error: null })),
+}));
+const deleteFn = vi.fn(() => Promise.resolve({ error: null }));
 
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     from: (table: string) => {
       if (table === 'site_config') {
         return {
-          select: selectFn,
-          update: updateFn,
+          select: configSelectFn,
+          update: configUpdateFn,
         };
       }
       return {
-        select: () => ({ order: orderFn }),
+        select: rsvpsSelectFn,
         delete: deleteFn,
       };
     },
@@ -52,13 +58,12 @@ describe('AdminPage', () => {
     vi.stubGlobal('import', { meta: { env: { VITE_ADMIN_PASSWORD: 'testpass' } } });
 
     maybeSingleFn.mockReset();
-    selectFn.mockClear();
-    updateFn.mockClear();
+    configSelectFn.mockClear();
+    configUpdateFn.mockClear();
+    rsvpsSelectFn.mockClear();
     deleteFn.mockClear();
-    orderFn.mockClear();
 
     maybeSingleFn.mockResolvedValue({ data: baseConfig, error: null });
-    orderFn.mockResolvedValue({ data: [], error: null });
   });
 
   afterEach(() => {
@@ -105,10 +110,10 @@ describe('AdminPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Save visibility/i }));
 
     await waitFor(() => {
-      expect(updateFn).toHaveBeenCalled();
+      expect(configUpdateFn).toHaveBeenCalled();
     });
 
-    const updateCall = updateFn.mock.calls[0][0];
+    const updateCall = (configUpdateFn.mock.calls as unknown[][])[0][0] as Record<string, unknown>;
     expect(updateCall.hidden_events).toEqual([]);
   });
 
@@ -131,6 +136,6 @@ describe('AdminPage', () => {
       expect(screen.getByText(/At least one Kolkata event must remain visible/i)).toBeInTheDocument();
     });
 
-    expect(updateFn).not.toHaveBeenCalled();
+    expect(configUpdateFn).not.toHaveBeenCalled();
   });
 });
