@@ -364,7 +364,7 @@ export default function EventsSection() {
           <div className="md:hidden absolute left-5 top-0 bottom-0 w-0.5 bg-[#3D6B5B]" />
 
           <div className="space-y-6">
-            {keralaEvents.map((event, i) => (
+            {keralaEvents.map((event) => (
               <div
                 key={`kerala-${event.id}`}
                 className="event-card-wrapper relative pl-12 md:pl-0"

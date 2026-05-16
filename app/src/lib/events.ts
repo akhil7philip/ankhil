@@ -7,6 +7,8 @@ export interface EventItem {
   time: string;
   dressCode?: string;
   notes?: string;
+  venue?: string;
+  mapUrl?: string;
   city: 'kolkata' | 'kerala';
   iconType: IconType;
   start: string;
