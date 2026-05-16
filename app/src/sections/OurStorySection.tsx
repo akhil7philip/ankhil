@@ -66,8 +66,8 @@ export default function OurStorySection() {
               <div className="w-10 h-px bg-[#C4A055]" />
 
               <p className="font-serif-display italic text-[17px] md:text-[19px] text-[#3B2F2F]/85 leading-relaxed">
-                Now, after all these years of growing together, they are so happy
-                to begin this next chapter surrounded by the people they love.
+                Now, after all these years of growing together, we are so happy
+                to begin this next chapter surrounded by the people we love.
               </p>
             </div>
           </ScrollReveal>
