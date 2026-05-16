@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import ScrollReveal from '@/components/ScrollReveal';
 import { supabase } from '@/lib/supabase';
+import { getKolkataDateRange } from '@/lib/events';
 
 interface CityCardProps {
   city: string;
@@ -9,9 +10,20 @@ interface CityCardProps {
   airport: { name: string; code: string; note?: string };
   railwayStations?: string[];
   transport: string;
+  venue?: string;
+  mapUrl?: string;
 }
 
-function CityCard({ city, dates, accentColor, airport, railwayStations, transport }: CityCardProps) {
+function CityCard({
+  city,
+  dates,
+  accentColor,
+  airport,
+  railwayStations,
+  transport,
+  venue,
+  mapUrl,
+}: CityCardProps) {
   const stations = railwayStations?.filter(Boolean) ?? [];
   return (
     <div className="bg-white rounded-[4px] shadow-[0_2px_12px_rgba(59,47,47,0.06)] overflow-hidden">
@@ -21,6 +33,23 @@ function CityCard({ city, dates, accentColor, airport, railwayStations, transpor
           {city}
         </h3>
         <p className="font-sans-body text-sm text-[#3B2F2F]/70 mt-1">{dates}</p>
+
+        {venue && (
+          <>
+            <p className="font-sans-body text-sm text-[#3B2F2F]/70 mt-1">{venue}</p>
+            {mapUrl && (
+              <a
+                href={mapUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block font-sans-body text-xs font-semibold uppercase tracking-[0.1em] text-[#3D6B5B] mt-1 hover:underline"
+              >
+                View on Maps &rarr;
+              </a>
+            )}
+          </>
+        )}
+
         <div className="w-10 h-px bg-[#C4A055] my-4" />
 
         {/* Airport */}
@@ -64,25 +93,52 @@ export default function TravelSection() {
     kolkata: [],
     kerala: [],
   });
+  const [venues, setVenues] = useState<{
+    kolkata: string;
+    kolkataMapUrl: string;
+    kerala: string;
+    keralaMapUrl: string;
+  }>({
+    kolkata: '',
+    kolkataMapUrl: '',
+    kerala: '',
+    keralaMapUrl: '',
+  });
+  const [hiddenEvents, setHiddenEvents] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       const { data } = await supabase
         .from('site_config')
-        .select('kolkata_railway_stations, kerala_railway_stations')
+        .select(
+          'kolkata_railway_stations, kerala_railway_stations, kolkata_venue, kolkata_map_url, kerala_venue, kerala_map_url, hidden_events'
+        )
         .maybeSingle();
       if (cancelled || !data) return;
       setStations({
-        kolkata: Array.isArray(data.kolkata_railway_stations) ? data.kolkata_railway_stations : [],
-        kerala: Array.isArray(data.kerala_railway_stations) ? data.kerala_railway_stations : [],
+        kolkata: Array.isArray(data.kolkata_railway_stations)
+          ? data.kolkata_railway_stations
+          : [],
+        kerala: Array.isArray(data.kerala_railway_stations)
+          ? data.kerala_railway_stations
+          : [],
       });
+      setVenues({
+        kolkata: data.kolkata_venue || '',
+        kolkataMapUrl: data.kolkata_map_url || '',
+        kerala: data.kerala_venue || '',
+        keralaMapUrl: data.kerala_map_url || '',
+      });
+      setHiddenEvents(Array.isArray(data.hidden_events) ? data.hidden_events : []);
     }
     load();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const kolkataDateRange = getKolkataDateRange(hiddenEvents);
 
   return (
     <section id="travel" className="bg-[#F5F1EB] py-[60px] md:py-[100px] px-5 md:px-10">
@@ -96,7 +152,7 @@ export default function TravelSection() {
           <ScrollReveal direction="left" delay={0.1}>
             <CityCard
               city="Kolkata, West Bengal"
-              dates="Wedding Events • July 6 – 8, 2026"
+              dates={`Wedding Events • ${kolkataDateRange}`}
               accentColor="#C4A055"
               airport={{
                 name: 'Netaji Subhas Chandra Bose International Airport',
@@ -104,6 +160,8 @@ export default function TravelSection() {
               }}
               railwayStations={stations.kolkata}
               transport="Shared transport options will be arranged — please indicate in your RSVP."
+              venue={venues.kolkata}
+              mapUrl={venues.kolkataMapUrl}
             />
           </ScrollReveal>
 
@@ -119,6 +177,8 @@ export default function TravelSection() {
               }}
               railwayStations={stations.kerala}
               transport="Shared transport options will be arranged — please indicate in your RSVP."
+              venue={venues.kerala}
+              mapUrl={venues.keralaMapUrl}
             />
           </ScrollReveal>
         </div>

@@ -3,9 +3,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RSVPSection from './RSVPSection';
 
-// Mock two Supabase chains:
-//   from('rsvps').insert([...]).select('edit_token').single()
-//   from('site_config').select(...).maybeSingle()
 const singleFn = vi.fn();
 const selectFn = vi.fn(() => ({ single: singleFn }));
 const insertFn = vi.fn(() => ({ select: selectFn }));
@@ -49,7 +46,7 @@ describe('RSVPSection', () => {
     configSelectFn.mockClear();
     singleFn.mockResolvedValue({ data: { edit_token: 'test-token-1234' }, error: null });
     configMaybeSingleFn.mockResolvedValue({
-      data: { rsvp_open: true, rsvp_closed_message: null, kerala_non_veg: false },
+      data: { rsvp_open: true, rsvp_closed_message: null, kerala_non_veg: false, hidden_events: [] },
       error: null,
     });
   });
@@ -106,7 +103,6 @@ describe('RSVPSection', () => {
       expect(screen.getByText(/Please enter your full name/i)).toBeInTheDocument();
       expect(screen.getByText(/Please tell us if you can join either celebration/i)).toBeInTheDocument();
     });
-    // Phone + dietary are no longer required.
     expect(screen.queryByText(/Please enter your phone number/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Please select your dietary preference/i)).not.toBeInTheDocument();
   });
@@ -212,8 +208,6 @@ describe('RSVPSection', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Submit RSVP/i }));
 
-    // Travel dates are no longer required; submission proceeds and arrival
-    // / departure end up null in the payload.
     await waitFor(() => {
       expect(insertFn).toHaveBeenCalled();
     });
@@ -231,6 +225,7 @@ describe('RSVPSection', () => {
       data: {
         rsvp_open: false,
         rsvp_closed_message: 'We are no longer taking RSVPs for this event.',
+        hidden_events: [],
       },
       error: null,
     });
@@ -247,18 +242,16 @@ describe('RSVPSection', () => {
 
   it('shows dietary radio inside Kerala panel when kerala_non_veg is enabled', async () => {
     configMaybeSingleFn.mockResolvedValue({
-      data: { rsvp_open: true, rsvp_closed_message: null, kerala_non_veg: true },
+      data: { rsvp_open: true, rsvp_closed_message: null, kerala_non_veg: true, hidden_events: [] },
       error: null,
     });
 
     render(<RSVPSection />);
 
-    // Wait for the form to render under the (open) config
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Your full name')).toBeInTheDocument();
     });
 
-    // Radio should not yet exist before Kerala is selected
     expect(screen.queryByText(/Meal preference for the reception/i)).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByLabelText(/Pala reception/i));
@@ -270,7 +263,7 @@ describe('RSVPSection', () => {
 
   it('requires dietary selection when kerala_non_veg is on and attending Kerala', async () => {
     configMaybeSingleFn.mockResolvedValue({
-      data: { rsvp_open: true, rsvp_closed_message: null, kerala_non_veg: true },
+      data: { rsvp_open: true, rsvp_closed_message: null, kerala_non_veg: true, hidden_events: [] },
       error: null,
     });
 
@@ -306,5 +299,39 @@ describe('RSVPSection', () => {
 
     const datetimeInputs = container.querySelectorAll('input[type="datetime-local"]');
     expect(datetimeInputs[0]).toHaveValue('2026-07-07T10:00');
+  });
+
+  it('hides mehendi checkbox when hidden_events includes mehendi', async () => {
+    configMaybeSingleFn.mockResolvedValue({
+      data: { rsvp_open: true, rsvp_closed_message: null, kerala_non_veg: false, hidden_events: ['mehendi'] },
+      error: null,
+    });
+
+    render(<RSVPSection />);
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Your full name')).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByLabelText(/Kolkata celebrations/i));
+
+    expect(screen.queryByLabelText(/July 6 evening — Mehendi/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/July 7 morning — Haldi/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/July 7 evening — Musical Night/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/July 8 evening — Varmala & Reception/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/July 8 night — Wedding Ceremony & Pheras/i)).toBeInTheDocument();
+  });
+
+  it('shows updated date range under Kolkata checkbox when mehendi is hidden', async () => {
+    configMaybeSingleFn.mockResolvedValue({
+      data: { rsvp_open: true, rsvp_closed_message: null, kerala_non_veg: false, hidden_events: ['mehendi'] },
+      error: null,
+    });
+
+    render(<RSVPSection />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/July 7 – 8, 2026/i)).toBeInTheDocument();
+    });
   });
 });
