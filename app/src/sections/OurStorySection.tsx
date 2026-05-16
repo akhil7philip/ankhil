@@ -50,7 +50,7 @@ export default function OurStorySection() {
               </p>
 
               <p className="font-sans-body text-[16px] md:text-[17px] text-[#3B2F2F] leading-relaxed">
-                Over the years, life took us in different directions. Ankita
+                Over the years, life took them in different directions. Ankita
                 moved from consulting to public service, and Akhil found his way
                 into technology. There were exams, career changes, new cities,
                 long days, uncertain seasons, and many small victories along the
@@ -58,7 +58,7 @@ export default function OurStorySection() {
               </p>
 
               <p className="font-sans-body text-[16px] md:text-[17px] text-[#3B2F2F] leading-relaxed">
-                Through it all, we remained each other's quiet constant &mdash;
+                Through it all, they remained each other's quiet constant &mdash;
                 the person to call, the person to lean on, and the person
                 cheering from the other side.
               </p>
@@ -66,8 +66,8 @@ export default function OurStorySection() {
               <div className="w-10 h-px bg-[#C4A055]" />
 
               <p className="font-serif-display italic text-[17px] md:text-[19px] text-[#3B2F2F]/85 leading-relaxed">
-                Now, after all these years of growing together, we are so happy
-                to begin this next chapter surrounded by the people we love.
+                Now, after all these years of growing together, they are so happy
+                to begin this next chapter surrounded by the people they love.
               </p>
             </div>
           </ScrollReveal>
