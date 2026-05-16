@@ -49,4 +49,22 @@ describe('CountdownTimer', () => {
     expect(screen.getByText('Test')).toBeInTheDocument();
     expect(screen.getByText('01')).toBeInTheDocument(); // days
   });
+
+  it('shows message prop immediately instead of countdown', () => {
+    const target = new Date('2026-01-02T00:00:00Z');
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+
+    render(
+      <CountdownTimer
+        targetDate={target}
+        title="Now Happening"
+        message="Kolkata celebrations are underway!"
+      />
+    );
+
+    expect(screen.getByText('Now Happening')).toBeInTheDocument();
+    expect(screen.getByText('Kolkata celebrations are underway!')).toBeInTheDocument();
+    expect(screen.queryByText('Days')).not.toBeInTheDocument();
+    expect(screen.queryByText('01')).not.toBeInTheDocument();
+  });
 });

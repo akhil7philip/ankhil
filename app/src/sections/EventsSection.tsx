@@ -3,107 +3,20 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import ScrollReveal from '@/components/ScrollReveal';
 import { supabase } from '@/lib/supabase';
+import {
+  kolkataEventsBase,
+  keralaEventsBase,
+  getVisibleEvents,
+  getKolkataDateRange,
+  type EventItem,
+  type IconType,
+} from '@/lib/events';
 
 gsap.registerPlugin(ScrollTrigger);
-
-type IconType = 'reception' | 'mehendi' | 'haldi' | 'sangeet' | 'wedding' | 'kerala';
-
-interface EventItem {
-  date: string;
-  name: string;
-  time: string;
-  venue?: string;
-  dressCode?: string;
-  notes?: string;
-  mapUrl?: string;
-  city: 'kolkata' | 'kerala';
-  iconType: IconType;
-  start: string; // ISO with offset
-  end: string;   // ISO with offset
-}
 
 // Default venue strings. Real values come from site_config (editable in /admin).
 const DEFAULT_KOLKATA_VENUE = 'New Town, Kolkata';
 const DEFAULT_KERALA_VENUE = 'Pala, Kerala';
-
-// Event content is defined without venue/mapUrl — those are injected at render
-// from site_config so the couple can update them from /admin without a deploy.
-const kolkataEventsBase: EventItem[] = [
-  {
-    date: 'July 6',
-    name: 'Mehendi',
-    time: '3:00 PM onwards',
-    dressCode: 'Shades of green',
-    notes:
-      "An evening as henna is applied to the bride's hands and feet. Family and close friends are welcome to get henna applied themselves.",
-    city: 'kolkata',
-    iconType: 'mehendi',
-    start: '2026-07-06T15:00:00+05:30',
-    end: '2026-07-06T22:00:00+05:30',
-  },
-  {
-    date: 'July 7',
-    name: 'Haldi',
-    time: '10:00 AM – 1:00 PM',
-    dressCode: 'Shades of yellow',
-    notes:
-      'A playful turmeric ceremony where family and friends apply a paste of turmeric, sandalwood, and rose water on the bride and groom — said to bless the couple and leave them glowing.',
-    city: 'kolkata',
-    iconType: 'haldi',
-    start: '2026-07-07T10:00:00+05:30',
-    end: '2026-07-07T13:00:00+05:30',
-  },
-  {
-    date: 'July 7',
-    name: 'Musical Night',
-    time: '7:00 PM onwards',
-    dressCode: 'Shades of gold and silver',
-    notes: 'An evening of music and dance, with family and friends.',
-    city: 'kolkata',
-    iconType: 'sangeet',
-    start: '2026-07-07T19:00:00+05:30',
-    end: '2026-07-07T23:00:00+05:30',
-  },
-  {
-    date: 'July 8',
-    name: 'Varmala & Reception',
-    time: '6:00 PM onwards',
-    dressCode: 'Indian or Western Formals',
-    notes:
-      'The couple exchange floral garlands (varmala), followed by a reception with extended family and friends before the wedding ceremony later that night.',
-    city: 'kolkata',
-    iconType: 'reception',
-    start: '2026-07-08T18:00:00+05:30',
-    end: '2026-07-08T22:00:00+05:30',
-  },
-  {
-    date: 'July 8',
-    name: 'Wedding Ceremony & Pheras',
-    time: '10:30 PM – 12:30 AM (July 9)',
-    dressCode: 'Indian or Western Formals',
-    notes:
-      'The sacred Hindu rites — including the Pheras (seven circles around a holy fire) — that mark Ankita and Akhil as married. The ceremony runs about 2 hours; seating is provided.',
-    city: 'kolkata',
-    iconType: 'wedding',
-    start: '2026-07-08T22:30:00+05:30',
-    end: '2026-07-09T00:30:00+05:30',
-  },
-];
-
-const keralaEventsBase: EventItem[] = [
-  {
-    date: 'July 25',
-    name: 'Pala Reception',
-    time: '6:00 PM onwards',
-    dressCode: 'Indian or Western Formals',
-    notes:
-      'A wedding reception with the couple, both families, friends and hometown community.',
-    city: 'kerala',
-    iconType: 'kerala',
-    start: '2026-07-25T18:00:00+05:30',
-    end: '2026-07-25T22:00:00+05:30',
-  },
-];
 
 // --- Icons ---------------------------------------------------------------
 function EventIcon({ type, color }: { type: IconType; color: string }) {
@@ -303,20 +216,19 @@ export default function EventsSection() {
     kerala: DEFAULT_KERALA_VENUE,
     keralaMapUrl: '',
   });
+  const [hiddenEvents, setHiddenEvents] = useState<string[]>([]);
 
-  // Fetch venue strings from site_config. Defaults are already correct for the
-  // current "not finalized" state, so a failed read still renders sensible
-  // copy ("New Town, Kolkata" / "Pala, Kerala") with no map link.
+  // Fetch venue strings and hidden events from site_config.
   useEffect(() => {
     let cancelled = false;
     async function load() {
       const { data, error } = await supabase
         .from('site_config')
-        .select('kolkata_venue, kolkata_map_url, kerala_venue, kerala_map_url')
+        .select('kolkata_venue, kolkata_map_url, kerala_venue, kerala_map_url, hidden_events')
         .maybeSingle();
       if (cancelled) return;
       if (error) {
-        console.warn('site_config venues read failed; using defaults:', error.message);
+        console.warn('site_config read failed; using defaults:', error.message);
         return;
       }
       if (data) {
@@ -326,6 +238,7 @@ export default function EventsSection() {
           kerala: data.kerala_venue || DEFAULT_KERALA_VENUE,
           keralaMapUrl: data.kerala_map_url || '',
         });
+        setHiddenEvents(Array.isArray(data.hidden_events) ? data.hidden_events : []);
       }
     }
     load();
@@ -334,25 +247,30 @@ export default function EventsSection() {
     };
   }, []);
 
-  // Inject venue + mapUrl into each event from the current config.
+  // Filter events by visibility, then inject venue + mapUrl.
   const kolkataEvents = useMemo(
     () =>
-      kolkataEventsBase.map((e) => ({
+      getVisibleEvents(kolkataEventsBase, hiddenEvents).map((e) => ({
         ...e,
         venue: venues.kolkata,
         mapUrl: venues.kolkataMapUrl || undefined,
       })),
-    [venues.kolkata, venues.kolkataMapUrl]
+    [venues.kolkata, venues.kolkataMapUrl, hiddenEvents]
   );
 
   const keralaEvents = useMemo(
     () =>
-      keralaEventsBase.map((e) => ({
+      getVisibleEvents(keralaEventsBase, hiddenEvents).map((e) => ({
         ...e,
         venue: venues.kerala,
         mapUrl: venues.keralaMapUrl || undefined,
       })),
-    [venues.kerala, venues.keralaMapUrl]
+    [venues.kerala, venues.keralaMapUrl, hiddenEvents]
+  );
+
+  const kolkataDateRange = useMemo(
+    () => getKolkataDateRange(hiddenEvents),
+    [hiddenEvents]
   );
 
   useLayoutEffect(() => {
@@ -394,7 +312,7 @@ export default function EventsSection() {
     }, sectionRef);
 
     return () => ctx.revert();
-  }, []);
+  }, [kolkataEvents.length, keralaEvents.length]);
 
   return (
     <section id="events" ref={sectionRef} className="bg-[#F5F1EB] py-[60px] md:py-[100px] px-5 md:px-10">
@@ -407,7 +325,7 @@ export default function EventsSection() {
         {/* Kolkata Events */}
         <ScrollReveal delay={0.1}>
           <h3 className="font-serif-display text-lg md:text-[22px] uppercase tracking-[0.05em] text-[#3B2F2F] mb-6 md:mb-8">
-            Kolkata, West Bengal &bull; July 6 &ndash; 8, 2026
+            Kolkata, West Bengal &bull; {kolkataDateRange}
           </h3>
         </ScrollReveal>
 
@@ -420,7 +338,7 @@ export default function EventsSection() {
           <div className="space-y-6 md:space-y-8">
             {kolkataEvents.map((event, i) => (
               <div
-                key={`kolkata-${i}`}
+                key={`kolkata-${event.id}`}
                 className={`event-card-wrapper relative pl-12 md:pl-0 ${
                   i % 2 === 0 ? '' : 'md:text-right'
                 }`}
@@ -448,7 +366,7 @@ export default function EventsSection() {
           <div className="space-y-6">
             {keralaEvents.map((event, i) => (
               <div
-                key={`kerala-${i}`}
+                key={`kerala-${event.id}`}
                 className="event-card-wrapper relative pl-12 md:pl-0"
               >
                 <div className="md:hidden absolute left-[14px] top-8 w-3 h-3 rounded-full bg-[#3D6B5B]" />

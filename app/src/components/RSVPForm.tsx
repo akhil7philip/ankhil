@@ -3,6 +3,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import type Lenis from 'lenis';
 import DateTimePicker from '@/components/DateTimePicker';
+import { getKolkataDateRange } from '@/lib/events';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -76,6 +77,8 @@ export interface RSVPFormProps {
   /** Lenis instance for smooth-scrolling the success card into view after
    * submit. When absent, falls back to native window.scrollTo. */
   lenis?: Lenis | null;
+  /** Event IDs to hide from the Kolkata event checklist. */
+  hiddenEvents?: string[];
 }
 
 const emptyForm: RsvpFormData = {
@@ -83,23 +86,20 @@ const emptyForm: RsvpFormData = {
   phone: '',
   email: '',
   guestCount: '1',
-  // Empty unless the admin's kerala_non_veg toggle is on AND the guest is
-  // attending Kerala. When the dietary radio is hidden, buildPayload defaults
-  // to 'veg' so the DB always sees a valid value.
   dietary: '',
   notAttending: false,
   attendingKolkata: false,
   attendingKerala: false,
   kolkataEvents: [],
-  kolkataAccommodation: '',
-  kolkataAirportPickup: '',
-  kolkataTrainPickup: '',
+  kolkataAccommodation: "No, I've arranged my own",
+  kolkataAirportPickup: "No, I'll arrange my own transport",
+  kolkataTrainPickup: "No, I'll arrange my own transport",
   kolkataTrainPickupStation: '',
   kolkataArrival: '',
   kolkataDeparture: '',
-  keralaAccommodation: '',
-  keralaAirportPickup: '',
-  keralaTrainPickup: '',
+  keralaAccommodation: "No, I've arranged my own",
+  keralaAirportPickup: "No, I'll arrange my own transport",
+  keralaTrainPickup: "No, I'll arrange my own transport",
   keralaTrainPickupStation: '',
   keralaArrival: '',
   keralaDeparture: '',
@@ -112,6 +112,14 @@ const SUGGESTED = {
   keralaArrival: '2026-07-25T10:00',
   keralaDeparture: '2026-07-26T11:00',
 };
+
+const ALL_KOLKATA_OPTIONS = [
+  { value: 'mehendi', label: 'July 6 evening — Mehendi' },
+  { value: 'haldi', label: 'July 7 morning — Haldi' },
+  { value: 'sangeet', label: 'July 7 evening — Musical Night' },
+  { value: 'varmala', label: 'July 8 evening — Varmala & Reception' },
+  { value: 'pheras', label: 'July 8 night — Wedding Ceremony & Pheras' },
+];
 
 function formatSuggestionLabel(iso: string): string {
   const d = new Date(iso);
@@ -131,14 +139,6 @@ const inputClasses =
 
 const labelClasses =
   'block font-sans-body text-xs font-semibold uppercase tracking-[0.1em] text-[#3B2F2F] mb-1.5';
-
-const kolkataOptions = [
-  { value: 'mehendi', label: 'July 6 evening — Mehendi' },
-  { value: 'haldi', label: 'July 7 morning — Haldi' },
-  { value: 'sangeet', label: 'July 7 evening — Musical Night' },
-  { value: 'varmala', label: 'July 8 evening — Varmala & Reception' },
-  { value: 'pheras', label: 'July 8 night — Wedding Ceremony & Pheras' },
-];
 
 const isYes = (val: string) => val.startsWith('Yes');
 
@@ -239,8 +239,6 @@ function buildPayload(form: RsvpFormData, kolkataTravel: boolean, keralaTravel: 
     full_name: form.fullName.trim(),
     phone: form.phone.trim(),
     email: form.email.trim() || null,
-    // Default to 'veg' when the form hid the dietary radio (keralaNonVeg=false
-    // or guest not attending Kerala). Keeps the DB column non-null.
     dietary: (form.dietary || 'veg') as 'veg' | 'non-veg',
     guest_count: parseInt(form.guestCount, 10) || 1,
     not_attending: form.notAttending,
@@ -281,6 +279,7 @@ export default function RSVPForm({
   kolkataRailwayStations = EMPTY_STATIONS,
   keralaRailwayStations = EMPTY_STATIONS,
   lenis,
+  hiddenEvents = EMPTY_STATIONS,
 }: RSVPFormProps) {
   const [form, setForm] = useState<RsvpFormData>({ ...emptyForm, ...initial });
   const [errors, setErrors] = useState<Partial<Record<keyof RsvpFormData, string>>>({});
@@ -289,10 +288,20 @@ export default function RSVPForm({
   const [editUrl, setEditUrl] = useState<string | undefined>(undefined);
   const successRef = useRef<HTMLDivElement>(null);
 
+  // Filter available options by hidden events
+  const kolkataOptions = ALL_KOLKATA_OPTIONS.filter(
+    (opt) => !hiddenEvents.includes(opt.value)
+  );
+
   // When initial data changes (edit page finishes loading), re-seed the form.
+  // Hidden events are automatically stripped from kolkataEvents.
   useEffect(() => {
-    if (initial) setForm({ ...emptyForm, ...initial });
-  }, [initial]);
+    if (!initial) return;
+    const visibleEvents = (initial.kolkataEvents ?? []).filter(
+      (e) => !hiddenEvents.includes(e)
+    );
+    setForm({ ...emptyForm, ...initial, kolkataEvents: visibleEvents });
+  }, [initial, hiddenEvents]);
 
   const updateField = useCallback(<K extends keyof RsvpFormData>(field: K, value: RsvpFormData[K]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -334,24 +343,21 @@ export default function RSVPForm({
   const validate = (): boolean => {
     const newErrors: Partial<Record<keyof RsvpFormData, string>> = {};
     if (!form.fullName.trim()) newErrors.fullName = 'Please enter your full name';
-    // Phone is no longer required — it's still the preferred way to reach
-    // guests, but plenty of family members will leave it blank.
     if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       newErrors.email = 'Please enter a valid email address';
     }
     if (!form.attendingKolkata && !form.attendingKerala && !form.notAttending) {
       newErrors.attendingKolkata =
-        'Please tell us if you can join either celebration, or pick "I won’t be able to attend"';
+        'Please tell us if you can join either celebration, or pick "I won\'t be able to attend"';
     }
-    if (form.attendingKolkata && form.kolkataEvents.length === 0) {
+    // Require at least one event only when there are visible options to choose from
+    if (form.attendingKolkata && kolkataOptions.length > 0 && form.kolkataEvents.length === 0) {
       newErrors.kolkataEvents = 'Please select at least one Kolkata event';
     }
     if (keralaNonVeg && form.attendingKerala && !form.dietary) {
       newErrors.dietary = 'Please select your meal preference for the reception';
     }
 
-    // Train station selection — required only when the user opted in AND
-    // the city has more than one configured station.
     if (
       form.attendingKolkata &&
       isYes(form.kolkataTrainPickup) &&
@@ -367,15 +373,6 @@ export default function RSVPForm({
       !form.keralaTrainPickupStation
     ) {
       newErrors.keralaTrainPickupStation = 'Please choose your pickup station';
-    }
-    if (kolkataNeedsTravelInfo) {
-      // Arrival / departure are no longer hard-required, even when the
-      // guest asks for accommodation or a pickup. Couple can follow up
-      // directly for missing details.
-    }
-    if (keralaNeedsTravelInfo) {
-      // Arrival / departure are no longer hard-required (see Kolkata
-      // comment above).
     }
 
     setErrors(newErrors);
@@ -402,17 +399,6 @@ export default function RSVPForm({
     setState('success');
   };
 
-  // After the form transitions to the success view, scroll the section that
-  // holds the success card to the top of the viewport (offset for the fixed
-  // nav). The form unmounts and the page shrinks meaningfully, so without
-  // this the user's previous scroll position can leave the confirmation
-  // off-screen entirely.
-  //
-  // Also force ScrollTrigger to recompute -- the form (~1500px) -> success
-  // card (~300px) swap leaves every ScrollReveal *below* this section with
-  // stale cached positions. Without the refresh, a user who hadn't scrolled
-  // past Travel/FAQ/Gallery/Footer pre-submit would never see them reveal,
-  // because their cached trigger zones now sit below the actual page bottom.
   useEffect(() => {
     if (state !== 'success' || !successRef.current) return;
     const successEl = successRef.current;
@@ -420,10 +406,6 @@ export default function RSVPForm({
     const scrollTarget = section ?? successEl;
     const navOffset = 60;
 
-    // Use Lenis when available — native window.scrollTo loses races against
-    // Lenis's wheel-event-driven smooth scrolling on the public site. Lenis
-    // is undefined on the /rsvp/edit/:token page (no smooth-scroll there)
-    // so we fall back to native scrollTo for that flow.
     if (lenis) {
       lenis.scrollTo(scrollTarget, { offset: -navOffset });
     } else {
@@ -446,8 +428,12 @@ export default function RSVPForm({
   const isSubmitting = state === 'submitting';
   const submitLabel =
     mode === 'create'
-      ? isSubmitting ? 'Submitting...' : 'Submit RSVP'
-      : isSubmitting ? 'Saving...' : 'Save Changes';
+      ? isSubmitting
+        ? 'Submitting...'
+        : 'Submit RSVP'
+      : isSubmitting
+      ? 'Saving...'
+      : 'Save Changes';
 
   if (state === 'success') {
     return (
@@ -465,7 +451,7 @@ export default function RSVPForm({
             ? form.notAttending
               ? "Thank you for letting us know — we'll miss you. We'll keep you in our thoughts on the day."
               : "We're so grateful you'll be celebrating with us. We'll be in touch soon with more details."
-            : "Your RSVP has been updated. Thanks for letting us know!"}
+            : 'Your RSVP has been updated. Thanks for letting us know!'}
         </p>
         {mode === 'create' && editUrl && (
           <div className="mt-8 mx-auto max-w-[480px] p-5 bg-white/[0.06] rounded-[4px] border border-white/15">
@@ -474,7 +460,7 @@ export default function RSVPForm({
             </p>
             <p className="font-sans-body text-sm text-white/75 leading-relaxed mb-3">
               Bookmark this private link to edit your RSVP at any time.
-              {form.email.trim() && ' We\'ve also emailed it to you.'}
+              {form.email.trim() && " We've also emailed it to you."}
             </p>
             <div className="flex items-center gap-2">
               <input
@@ -497,6 +483,8 @@ export default function RSVPForm({
       </div>
     );
   }
+
+  const kolkataDateRange = getKolkataDateRange(hiddenEvents);
 
   return (
     <form
@@ -598,7 +586,6 @@ export default function RSVPForm({
                 type="checkbox"
                 checked={form.attendingKolkata}
                 onChange={(e) => {
-                  // Picking a city implies attending — clear the regrets flag.
                   if (e.target.checked && form.notAttending) updateField('notAttending', false);
                   updateField('attendingKolkata', e.target.checked);
                 }}
@@ -615,7 +602,7 @@ export default function RSVPForm({
               <span className="font-sans-body text-[15px] text-[#3B2F2F] group-hover:text-[#C4A055] transition-colors duration-200">
                 Kolkata celebrations
               </span>
-              <p className="font-sans-body text-xs text-[#3B2F2F]/60">July 6 – 8, 2026</p>
+              <p className="font-sans-body text-xs text-[#3B2F2F]/60">{kolkataDateRange}</p>
             </div>
           </label>
 
@@ -655,7 +642,6 @@ export default function RSVPForm({
                 checked={form.notAttending}
                 onChange={(e) => {
                   if (e.target.checked) {
-                    // Regrets clears any prior city selection.
                     if (form.attendingKolkata) updateField('attendingKolkata', false);
                     if (form.attendingKerala) updateField('attendingKerala', false);
                   }
@@ -691,34 +677,36 @@ export default function RSVPForm({
             Kolkata Details
           </h3>
 
-          <div className="mb-5">
-            <label className={labelClasses}>Events you'll attend *</label>
-            <div className="space-y-2 mt-2">
-              {kolkataOptions.map((opt) => (
-                <label key={opt.value} htmlFor={`kolkata-event-${opt.value}`} className="flex items-start gap-2.5 cursor-pointer group">
-                  <div className="relative w-4 h-4 mt-0.5">
-                    <input
-                      id={`kolkata-event-${opt.value}`}
-                      type="checkbox"
-                      checked={form.kolkataEvents.includes(opt.value)}
-                      onChange={() => toggleKolkataEvent(opt.value)}
-                      disabled={isSubmitting}
-                      className="peer absolute inset-0 opacity-0 cursor-pointer z-10"
-                    />
-                    <div className="w-4 h-4 border border-[rgba(59,47,47,0.3)] rounded-[2px] peer-checked:bg-[#C4A055] peer-checked:border-[#C4A055] transition-colors duration-200 flex items-center justify-center pointer-events-none">
-                      <svg className={`w-2.5 h-2.5 text-white transition-opacity duration-200 ${form.kolkataEvents.includes(opt.value) ? 'opacity-100' : 'opacity-0'}`} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M2 6l3 3 5-5" />
-                      </svg>
+          {kolkataOptions.length > 0 && (
+            <div className="mb-5">
+              <label className={labelClasses}>Events you&apos;ll attend *</label>
+              <div className="space-y-2 mt-2">
+                {kolkataOptions.map((opt) => (
+                  <label key={opt.value} htmlFor={`kolkata-event-${opt.value}`} className="flex items-start gap-2.5 cursor-pointer group">
+                    <div className="relative w-4 h-4 mt-0.5">
+                      <input
+                        id={`kolkata-event-${opt.value}`}
+                        type="checkbox"
+                        checked={form.kolkataEvents.includes(opt.value)}
+                        onChange={() => toggleKolkataEvent(opt.value)}
+                        disabled={isSubmitting}
+                        className="peer absolute inset-0 opacity-0 cursor-pointer z-10"
+                      />
+                      <div className="w-4 h-4 border border-[rgba(59,47,47,0.3)] rounded-[2px] peer-checked:bg-[#C4A055] peer-checked:border-[#C4A055] transition-colors duration-200 flex items-center justify-center pointer-events-none">
+                        <svg className={`w-2.5 h-2.5 text-white transition-opacity duration-200 ${form.kolkataEvents.includes(opt.value) ? 'opacity-100' : 'opacity-0'}`} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M2 6l3 3 5-5" />
+                        </svg>
+                      </div>
                     </div>
-                  </div>
-                  <span className="font-sans-body text-sm text-[#3B2F2F] group-hover:text-[#C4A055] transition-colors duration-200">
-                    {opt.label}
-                  </span>
-                </label>
-              ))}
+                    <span className="font-sans-body text-sm text-[#3B2F2F] group-hover:text-[#C4A055] transition-colors duration-200">
+                      {opt.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              {errors.kolkataEvents && <p className="text-xs text-[#7B2D41] mt-1">{errors.kolkataEvents}</p>}
             </div>
-            {errors.kolkataEvents && <p className="text-xs text-[#7B2D41] mt-1">{errors.kolkataEvents}</p>}
-          </div>
+          )}
 
           <div className="mb-5">
             <label className={labelClasses}>Accommodation</label>

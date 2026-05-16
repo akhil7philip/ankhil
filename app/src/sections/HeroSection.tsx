@@ -1,21 +1,44 @@
-import { useRef, useLayoutEffect } from 'react';
+import { useRef, useLayoutEffect, useState, useEffect } from 'react';
 import gsap from 'gsap';
 import CountdownTimer from '@/components/CountdownTimer';
 import type Lenis from 'lenis';
+import { supabase } from '@/lib/supabase';
+import {
+  getKolkataCountdownDate,
+  getKolkataEventsEnd,
+  getKolkataDateRange,
+} from '@/lib/events';
 
 interface HeroSectionProps {
   lenis: Lenis | null;
 }
 
-const KOLKATA_DATE = new Date('2026-07-06T00:00:00+05:30');
-const KOLKATA_EVENTS_END = new Date('2026-07-09T00:00:00+05:30');
-const KERALA_DATE = new Date('2026-07-25T18:00:00+05:30');
+const KERALA_START = new Date('2026-07-25T18:00:00+05:30');
+const KERALA_END = new Date('2026-07-25T22:00:00+05:30');
 
-function pickCountdown(now: Date): { target: Date; title: string } {
-  if (now < KOLKATA_EVENTS_END) {
-    return { target: KOLKATA_DATE, title: 'Countdown to Kolkata' };
+interface CountdownState {
+  target?: Date;
+  title: string;
+  message?: string;
+}
+
+function pickCountdown(now: Date, hiddenEvents: string[]): CountdownState {
+  const kolkataStart = getKolkataCountdownDate(hiddenEvents);
+  const kolkataEnd = getKolkataEventsEnd(hiddenEvents);
+
+  if (now < kolkataStart) {
+    return { target: kolkataStart, title: 'Countdown to Kolkata' };
   }
-  return { target: KERALA_DATE, title: 'Countdown to Kerala' };
+  if (now < kolkataEnd) {
+    return { title: 'Now Happening', message: 'Kolkata celebrations are underway!' };
+  }
+  if (now < KERALA_START) {
+    return { target: KERALA_START, title: 'Countdown to Kerala' };
+  }
+  if (now < KERALA_END) {
+    return { title: 'Now Happening', message: 'The Pala Reception is tonight!' };
+  }
+  return { title: 'Ankita & Akhil', message: 'Thank you for celebrating with us!' };
 }
 
 export default function HeroSection({ lenis }: HeroSectionProps) {
@@ -31,7 +54,28 @@ export default function HeroSection({ lenis }: HeroSectionProps) {
   const storyLinkRef = useRef<HTMLButtonElement>(null);
   const hasAnimated = useRef(false);
 
-  const { target: countdownTarget, title: countdownTitle } = pickCountdown(new Date());
+  const [hiddenEvents, setHiddenEvents] = useState<string[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const { data } = await supabase
+        .from('site_config')
+        .select('hidden_events')
+        .maybeSingle();
+      if (cancelled || !data) return;
+      setHiddenEvents(Array.isArray(data.hidden_events) ? data.hidden_events : []);
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const { target: countdownTarget, title: countdownTitle, message: countdownMessage } =
+    pickCountdown(new Date(), hiddenEvents);
+
+  const kolkataDateRange = getKolkataDateRange(hiddenEvents);
 
   useLayoutEffect(() => {
     if (hasAnimated.current) return;
@@ -46,8 +90,6 @@ export default function HeroSection({ lenis }: HeroSectionProps) {
     const ctx = gsap.context(() => {
       const tl = gsap.timeline();
 
-      // Uses gsap.from() so elements default to their final visible state.
-      // If JS fails or is slow to load, the hero stays visible instead of blank.
       tl.from(bgRef.current, {
         opacity: 0,
         duration: 1.2,
@@ -121,9 +163,7 @@ export default function HeroSection({ lenis }: HeroSectionProps) {
         }}
       />
 
-      {/* Dark overlay — vertical gradient: lighter at top/bottom so the tree
-          silhouette and water stay visible, strongest mid-band where the
-          names + dates + countdown sit. */}
+      {/* Dark overlay */}
       <div
         ref={overlayRef}
         className="absolute inset-0 z-[1]"
@@ -182,7 +222,7 @@ export default function HeroSection({ lenis }: HeroSectionProps) {
             className="font-sans-body text-sm md:text-base text-white/90 leading-relaxed"
             style={{ textShadow: '0 1px 8px rgba(0,0,0,0.5)' }}
           >
-            Kolkata, West Bengal &bull; July 6 &ndash; 8, 2026
+            Kolkata, West Bengal &bull; {kolkataDateRange}
           </p>
           <p
             className="font-sans-body text-sm md:text-base text-white/80 leading-relaxed mt-1"
@@ -192,9 +232,13 @@ export default function HeroSection({ lenis }: HeroSectionProps) {
           </p>
         </div>
 
-        {/* Single conditional countdown — switches to Kerala after Kolkata events end */}
+        {/* Countdown */}
         <div ref={countdownRef}>
-          <CountdownTimer targetDate={countdownTarget} title={countdownTitle} />
+          <CountdownTimer
+            targetDate={countdownTarget}
+            title={countdownTitle}
+            message={countdownMessage}
+          />
         </div>
 
         {/* CTA Buttons */}

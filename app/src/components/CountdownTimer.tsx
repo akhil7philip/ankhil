@@ -1,17 +1,25 @@
 import { useCountdown } from '@/hooks/useCountdown';
 
 interface CountdownTimerProps {
-  targetDate: Date;
+  targetDate?: Date;
   title: string;
+  message?: string;
   scale?: 'normal' | 'small';
 }
 
-export default function CountdownTimer({ targetDate, title, scale = 'normal' }: CountdownTimerProps) {
-  const { days, hours, minutes, seconds, expired } = useCountdown(targetDate);
+export default function CountdownTimer({
+  targetDate,
+  title,
+  message,
+  scale = 'normal',
+}: CountdownTimerProps) {
+  const { days, hours, minutes, seconds, expired } = useCountdown(
+    targetDate ?? new Date()
+  );
 
   const isSmall = scale === 'small';
 
-  if (expired) {
+  if (message || expired) {
     return (
       <div className={`text-center ${isSmall ? 'mt-3' : 'mt-5'}`}>
         <p
@@ -26,7 +34,7 @@ export default function CountdownTimer({ targetDate, title, scale = 'normal' }: 
             isSmall ? 'text-lg' : 'text-xl md:text-2xl'
           }`}
         >
-          Today is the day!
+          {message || 'Today is the day!'}
         </p>
       </div>
     );
@@ -50,7 +58,9 @@ export default function CountdownTimer({ targetDate, title, scale = 'normal' }: 
       </p>
       <div
         className={`inline-flex items-center gap-2 md:gap-4 ${
-          isSmall ? 'bg-white/10 px-4 py-2 rounded' : 'bg-white/[0.12] px-6 py-3 md:px-8 md:py-4 rounded-[4px]'
+          isSmall
+            ? 'bg-white/10 px-4 py-2 rounded'
+            : 'bg-white/[0.12] px-6 py-3 md:px-8 md:py-4 rounded-[4px]'
         }`}
       >
         {timeBlocks.map((block, i) => (
@@ -65,7 +75,9 @@ export default function CountdownTimer({ targetDate, title, scale = 'normal' }: 
               </div>
               <div
                 className={`font-sans-body font-semibold uppercase tracking-[0.15em] mt-1 ${
-                  isSmall ? 'text-[9px] text-[#C4A055]/80' : 'text-[10px] text-[#C4A055]'
+                  isSmall
+                    ? 'text-[9px] text-[#C4A055]/80'
+                    : 'text-[10px] text-[#C4A055]'
                 }`}
               >
                 {block.label}

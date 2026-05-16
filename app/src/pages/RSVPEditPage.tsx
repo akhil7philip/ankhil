@@ -87,9 +87,6 @@ type LoadState =
   | { kind: 'not-found' }
   | { kind: 'error'; message: string };
 
-// Matches the key in AdminPage. When this is set in sessionStorage the
-// current tab/session belongs to the authenticated admin, so the back
-// link should return to /admin instead of the public home page.
 const ADMIN_AUTH_KEY = 'ankhil-admin-auth';
 
 export default function RSVPEditPage() {
@@ -98,6 +95,7 @@ export default function RSVPEditPage() {
   const [keralaNonVeg, setKeralaNonVeg] = useState(false);
   const [kolkataRailwayStations, setKolkataRailwayStations] = useState<string[]>([]);
   const [keralaRailwayStations, setKeralaRailwayStations] = useState<string[]>([]);
+  const [hiddenEvents, setHiddenEvents] = useState<string[]>([]);
   const isAdmin =
     typeof window !== 'undefined' &&
     window.sessionStorage.getItem(ADMIN_AUTH_KEY) === 'true';
@@ -131,14 +129,12 @@ export default function RSVPEditPage() {
     };
   }, [token]);
 
-  // Pick up the Kerala non-veg toggle and pickup-station strings so the
-  // form mirrors what a fresh submission would see.
   useEffect(() => {
     let cancelled = false;
     async function loadConfig() {
       const { data } = await supabase
         .from('site_config')
-        .select('kerala_non_veg, kolkata_railway_stations, kerala_railway_stations')
+        .select('kerala_non_veg, kolkata_railway_stations, kerala_railway_stations, hidden_events')
         .maybeSingle();
       if (cancelled || !data) return;
       setKeralaNonVeg(Boolean(data.kerala_non_veg));
@@ -148,6 +144,7 @@ export default function RSVPEditPage() {
       setKeralaRailwayStations(
         Array.isArray(data.kerala_railway_stations) ? data.kerala_railway_stations : []
       );
+      setHiddenEvents(Array.isArray(data.hidden_events) ? data.hidden_events : []);
     }
     loadConfig();
     return () => {
@@ -232,6 +229,7 @@ export default function RSVPEditPage() {
             keralaNonVeg={keralaNonVeg}
             kolkataRailwayStations={kolkataRailwayStations}
             keralaRailwayStations={keralaRailwayStations}
+            hiddenEvents={hiddenEvents}
           />
         )}
       </div>

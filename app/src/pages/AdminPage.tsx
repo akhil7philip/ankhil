@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { ALL_KOLKATA_EVENT_IDS } from '@/lib/events';
 
 interface RSVP {
   id: string;
@@ -57,13 +58,11 @@ function formatShortDate(iso: string | null) {
 
 function eventLabel(value: string) {
   const map: Record<string, string> = {
-    // Current schedule
     mehendi: 'Mehendi',
     haldi: 'Haldi',
     sangeet: 'Musical Night',
     varmala: 'Varmala & Reception',
     pheras: 'Wedding (Pheras)',
-    // Legacy values from RSVPs submitted before the schedule was rewritten
     reception: 'Reception (legacy)',
     'mehendi-haldi': 'Mehendi/Haldi/Sangeet (legacy)',
     wedding: 'Wedding (legacy)',
@@ -99,16 +98,16 @@ interface SiteConfig {
   kerala_railway_stations: string[] | null;
   kerala_non_veg: boolean;
   faq_visible: boolean;
+  hidden_events: string[] | null;
   updated_at: string;
 }
 
 const CONFIG_SELECT =
-  'rsvp_open, rsvp_closed_message, kolkata_venue, kolkata_map_url, kolkata_railway_stations, kerala_venue, kerala_map_url, kerala_railway_stations, kerala_non_veg, faq_visible, updated_at';
+  'rsvp_open, rsvp_closed_message, kolkata_venue, kolkata_map_url, kolkata_railway_stations, kerala_venue, kerala_map_url, kerala_railway_stations, kerala_non_veg, faq_visible, hidden_events, updated_at';
 
 interface VenueFormState {
   kolkataVenue: string;
   kolkataMapUrl: string;
-  /** One station per line. Empty lines are dropped on save. */
   kolkataRailwayStationsText: string;
   keralaVenue: string;
   keralaMapUrl: string;
@@ -125,6 +124,14 @@ function textToStations(text: string): string[] {
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
 }
+
+const EVENT_LABELS: Record<string, string> = {
+  mehendi: 'Mehendi',
+  haldi: 'Haldi',
+  sangeet: 'Musical Night',
+  varmala: 'Varmala & Reception',
+  pheras: 'Wedding Ceremony & Pheras',
+};
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -196,6 +203,13 @@ export default function AdminPage() {
           keralaMapUrl: data.kerala_map_url ?? '',
           keralaRailwayStationsText: stationsToText(data.kerala_railway_stations),
         });
+        setEventVisibility(
+          ALL_KOLKATA_EVENT_IDS.reduce((acc, id) => {
+            const hidden = Array.isArray(data.hidden_events) ? data.hidden_events : [];
+            acc[id] = !hidden.includes(id);
+            return acc;
+          }, {} as Record<string, boolean>)
+        );
       }
     };
     fetchConfig();
@@ -215,6 +229,11 @@ export default function AdminPage() {
 
   const [faqBusy, setFaqBusy] = useState(false);
   const [faqError, setFaqError] = useState<string | null>(null);
+
+  const [eventVisibility, setEventVisibility] = useState<Record<string, boolean>>({});
+  const [eventVisibilityBusy, setEventVisibilityBusy] = useState(false);
+  const [eventVisibilityError, setEventVisibilityError] = useState<string | null>(null);
+  const [eventVisibilitySaved, setEventVisibilitySaved] = useState(false);
 
   const handleDelete = async (rsvp: RSVP) => {
     setDeleteBusyId(rsvp.id);
@@ -264,6 +283,37 @@ export default function AdminPage() {
       });
       setVenueSaved(true);
       setTimeout(() => setVenueSaved(false), 2500);
+    }
+  };
+
+  const saveEventVisibility = async () => {
+    if (!config) return;
+    const visibleIds = Object.entries(eventVisibility)
+      .filter(([, checked]) => checked)
+      .map(([id]) => id);
+    if (visibleIds.length === 0) {
+      setEventVisibilityError('At least one Kolkata event must remain visible.');
+      return;
+    }
+    const hidden = ALL_KOLKATA_EVENT_IDS.filter((id) => !visibleIds.includes(id));
+    setEventVisibilityBusy(true);
+    setEventVisibilityError(null);
+    setEventVisibilitySaved(false);
+    const { data, error } = await supabase
+      .from('site_config')
+      .update({ hidden_events: hidden })
+      .eq('id', true)
+      .select(CONFIG_SELECT)
+      .maybeSingle();
+    setEventVisibilityBusy(false);
+    if (error) {
+      setEventVisibilityError(error.message);
+      return;
+    }
+    if (data) {
+      setConfig(data);
+      setEventVisibilitySaved(true);
+      setTimeout(() => setEventVisibilitySaved(false), 2500);
     }
   };
 
@@ -567,6 +617,79 @@ export default function AdminPage() {
                     className="font-sans-body text-xs font-semibold uppercase tracking-[0.12em] bg-[#3B2F2F] text-white px-6 py-2.5 hover:bg-[#C4A055] transition-colors duration-300 disabled:opacity-60"
                   >
                     {venueBusy ? 'Saving...' : 'Save venues'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Event Visibility card */}
+          <div className="mb-6 p-5 bg-white border border-[rgba(59,47,47,0.1)] rounded-[2px]">
+            <p className="font-sans-body text-[11px] font-semibold uppercase tracking-[0.12em] text-[#3B2F2F]/60 mb-4">
+              Event Visibility
+            </p>
+
+            {config === null ? (
+              <p className="font-sans-body text-xs text-[#3B2F2F]/50">Loading...</p>
+            ) : (
+              <div className="space-y-4">
+                <p className="font-sans-body text-sm text-[#3B2F2F]/80">
+                  Uncheck an event to hide it from the public site and the RSVP form. Guests who already RSVP&apos;d for a hidden event will still see it in their record, but it will be auto-deselected when they edit.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {ALL_KOLKATA_EVENT_IDS.map((id) => (
+                    <label
+                      key={id}
+                      htmlFor={`event-visibility-${id}`}
+                      className="flex items-center gap-2 cursor-pointer group"
+                    >
+                      <div className="relative w-4 h-4">
+                        <input
+                          id={`event-visibility-${id}`}
+                          type="checkbox"
+                          checked={eventVisibility[id] ?? true}
+                          onChange={(e) =>
+                            setEventVisibility((prev) => ({
+                              ...prev,
+                              [id]: e.target.checked,
+                            }))
+                          }
+                          className="peer absolute inset-0 opacity-0 cursor-pointer z-10"
+                        />
+                        <div className="w-4 h-4 border border-[rgba(59,47,47,0.3)] rounded-[2px] peer-checked:bg-[#C4A055] peer-checked:border-[#C4A055] transition-colors duration-200 flex items-center justify-center pointer-events-none">
+                          <svg
+                            className={`w-2.5 h-2.5 text-white transition-opacity duration-200 ${
+                              eventVisibility[id] ? 'opacity-100' : 'opacity-0'
+                            }`}
+                            viewBox="0 0 12 12"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path d="M2 6l3 3 5-5" />
+                          </svg>
+                        </div>
+                      </div>
+                      <span className="font-sans-body text-sm text-[#3B2F2F] group-hover:text-[#C4A055] transition-colors duration-200">
+                        {EVENT_LABELS[id]}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <div className="flex items-center justify-end gap-4 pt-1">
+                  {eventVisibilityError && (
+                    <p className="font-sans-body text-xs text-[#7B2D41]">{eventVisibilityError}</p>
+                  )}
+                  {eventVisibilitySaved && !eventVisibilityError && (
+                    <p className="font-sans-body text-xs text-[#3D6B5B]">Saved.</p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={saveEventVisibility}
+                    disabled={eventVisibilityBusy}
+                    className="font-sans-body text-xs font-semibold uppercase tracking-[0.12em] bg-[#3B2F2F] text-white px-6 py-2.5 hover:bg-[#C4A055] transition-colors duration-300 disabled:opacity-60"
+                  >
+                    {eventVisibilityBusy ? 'Saving...' : 'Save visibility'}
                   </button>
                 </div>
               </div>
