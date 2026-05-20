@@ -44,16 +44,18 @@ function HomePage({ lenis }: { lenis: Lenis | null }) {
   //     cream/dark section alternation doesn't break into three creams
   //     in a row (Travel → Gallery → Footer)
   const [faqVisible, setFaqVisible] = useState(true);
+  const [galleryVisible, setGalleryVisible] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       const { data } = await supabase
         .from('site_config')
-        .select('faq_visible')
+        .select('faq_visible, gallery_visible')
         .maybeSingle();
       if (cancelled || !data) return;
       if (data.faq_visible === false) setFaqVisible(false);
+      if (data.gallery_visible === false) setGalleryVisible(false);
     }
     load();
     return () => {
@@ -61,19 +63,19 @@ function HomePage({ lenis }: { lenis: Lenis | null }) {
     };
   }, []);
 
-  // After the FAQ visibility settles, recompute ScrollTrigger positions on
-  // the next animation frame. Layout has just shifted (FAQ unmounted, Gallery
-  // bg may have flipped); sections below need correct cached zones.
+  // After the FAQ/Gallery visibility settles, recompute ScrollTrigger positions
+  // on the next animation frame. Layout has just shifted (sections unmounted,
+  // Gallery bg may have flipped); sections below need correct cached zones.
   useEffect(() => {
     const id = requestAnimationFrame(() => {
       ScrollTrigger.refresh();
     });
     return () => cancelAnimationFrame(id);
-  }, [faqVisible]);
+  }, [faqVisible, galleryVisible]);
 
   return (
     <div className="relative">
-      <Navigation lenis={lenis} faqVisible={faqVisible} />
+      <Navigation lenis={lenis} faqVisible={faqVisible} galleryVisible={galleryVisible} />
       <main>
         <HeroSection lenis={lenis} />
         <OurStorySection />
@@ -81,8 +83,8 @@ function HomePage({ lenis }: { lenis: Lenis | null }) {
         <EventsSection />
         <RSVPSection lenis={lenis} />
         <TravelSection />
-        <FAQSection visible={faqVisible} />
-        <GallerySection darkBackground={!faqVisible} />
+        {faqVisible && <FAQSection />}
+        {galleryVisible && <GallerySection darkBackground={!faqVisible} />}
       </main>
       <Footer />
     </div>

@@ -35,6 +35,25 @@ describe('Navigation', () => {
     expect(screen.getAllByText('Gallery').length).toBeGreaterThanOrEqual(1);
   });
 
+  it('hides FAQ nav link when faqVisible is false', () => {
+    render(<Navigation lenis={null} faqVisible={false} />);
+    expect(screen.queryAllByText('FAQ').length).toBe(0);
+    expect(screen.getAllByText('Gallery').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('hides Gallery nav link when galleryVisible is false', () => {
+    render(<Navigation lenis={null} galleryVisible={false} />);
+    expect(screen.getAllByText('FAQ').length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryAllByText('Gallery').length).toBe(0);
+  });
+
+  it('hides both FAQ and Gallery nav links when both are false', () => {
+    render(<Navigation lenis={null} faqVisible={false} galleryVisible={false} />);
+    expect(screen.queryAllByText('FAQ').length).toBe(0);
+    expect(screen.queryAllByText('Gallery').length).toBe(0);
+    expect(screen.getAllByText('Events').length).toBeGreaterThanOrEqual(1);
+  });
+
   it('renders A&A home button', () => {
     render(<Navigation lenis={null} />);
     expect(screen.getByText('A&A')).toBeInTheDocument();

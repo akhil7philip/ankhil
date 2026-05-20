@@ -98,12 +98,13 @@ interface SiteConfig {
   kerala_railway_stations: string[] | null;
   kerala_non_veg: boolean;
   faq_visible: boolean;
+  gallery_visible: boolean;
   hidden_events: string[] | null;
   updated_at: string;
 }
 
 const CONFIG_SELECT =
-  'rsvp_open, rsvp_closed_message, kolkata_venue, kolkata_map_url, kolkata_railway_stations, kerala_venue, kerala_map_url, kerala_railway_stations, kerala_non_veg, faq_visible, hidden_events, updated_at';
+  'rsvp_open, rsvp_closed_message, kolkata_venue, kolkata_map_url, kolkata_railway_stations, kerala_venue, kerala_map_url, kerala_railway_stations, kerala_non_veg, faq_visible, gallery_visible, hidden_events, updated_at';
 
 interface VenueFormState {
   kolkataVenue: string;
@@ -230,10 +231,107 @@ export default function AdminPage() {
   const [faqBusy, setFaqBusy] = useState(false);
   const [faqError, setFaqError] = useState<string | null>(null);
 
+  const [galleryBusy, setGalleryBusy] = useState(false);
+  const [galleryError, setGalleryError] = useState<string | null>(null);
+
   const [eventVisibility, setEventVisibility] = useState<Record<string, boolean>>({});
   const [eventVisibilityBusy, setEventVisibilityBusy] = useState(false);
   const [eventVisibilityError, setEventVisibilityError] = useState<string | null>(null);
   const [eventVisibilitySaved, setEventVisibilitySaved] = useState(false);
+
+  type DownloadFilter = 'kolkata' | 'kerala' | 'both';
+  const [downloadFilter, setDownloadFilter] = useState<DownloadFilter>('both');
+
+  function escapeCsvCell(val: string | number | boolean | null | undefined): string {
+    const str = val === null || val === undefined ? '' : String(val);
+    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+      return '"' + str.replace(/"/g, '""') + '"';
+    }
+    return str;
+  }
+
+  function buildCsv(rows: RSVP[]): string {
+    const headers = [
+      'Name',
+      'Phone',
+      'Email',
+      'Diet',
+      'Guest Count',
+      'Not Attending',
+      'Attending Kolkata',
+      'Kolkata Events',
+      'Kolkata Arrival',
+      'Kolkata Departure',
+      'Kolkata Accommodation',
+      'Kolkata Airport Pickup',
+      'Kolkata Train Pickup',
+      'Kolkata Train Station',
+      'Attending Kerala',
+      'Kerala Arrival',
+      'Kerala Departure',
+      'Kerala Accommodation',
+      'Kerala Airport Pickup',
+      'Kerala Train Pickup',
+      'Kerala Train Station',
+      'Special Notes',
+      'Submitted At',
+    ];
+    const lines = [headers.join(',')];
+    for (const r of rows) {
+      const cells = [
+        r.full_name,
+        r.phone,
+        r.email,
+        r.dietary,
+        r.guest_count,
+        r.not_attending ? 'Yes' : 'No',
+        r.attending_kolkata ? 'Yes' : 'No',
+        (r.kolkata_events || []).map(eventLabel).join('; '),
+        formatDate(r.kolkata_arrival),
+        formatDate(r.kolkata_departure),
+        r.kolkata_accommodation ? 'Yes' : 'No',
+        r.kolkata_airport_pickup ? 'Yes' : 'No',
+        r.kolkata_train_pickup ? 'Yes' : 'No',
+        r.kolkata_train_pickup_station,
+        r.attending_kerala ? 'Yes' : 'No',
+        formatDate(r.kerala_arrival),
+        formatDate(r.kerala_departure),
+        r.kerala_accommodation ? 'Yes' : 'No',
+        r.kerala_airport_pickup ? 'Yes' : 'No',
+        r.kerala_train_pickup ? 'Yes' : 'No',
+        r.kerala_train_pickup_station,
+        r.special_notes,
+        formatDate(r.created_at),
+      ];
+      lines.push(cells.map(escapeCsvCell).join(','));
+    }
+    return lines.join('\n');
+  }
+
+  function handleDownload() {
+    const filtered = rsvps.filter((r) => {
+      if (downloadFilter === 'kolkata') return r.attending_kolkata;
+      if (downloadFilter === 'kerala') return r.attending_kerala;
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      alert('No RSVPs match the selected filter.');
+      return;
+    }
+
+    const csv = buildCsv(filtered);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const label = downloadFilter === 'kolkata' ? 'kolkata' : downloadFilter === 'kerala' ? 'pala' : 'all';
+    link.download = `rsvp-submissions-${label}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
 
   const handleDelete = async (rsvp: RSVP) => {
     setDeleteBusyId(rsvp.id);
@@ -331,6 +429,25 @@ export default function AdminPage() {
     setFaqBusy(false);
     if (error) {
       setFaqError(error.message);
+      return;
+    }
+    if (data) setConfig(data);
+  };
+
+  const toggleGalleryVisible = async () => {
+    if (!config) return;
+    const next = !config.gallery_visible;
+    setGalleryBusy(true);
+    setGalleryError(null);
+    const { data, error } = await supabase
+      .from('site_config')
+      .update({ gallery_visible: next })
+      .eq('id', true)
+      .select(CONFIG_SELECT)
+      .maybeSingle();
+    setGalleryBusy(false);
+    if (error) {
+      setGalleryError(error.message);
       return;
     }
     if (data) setConfig(data);
@@ -744,6 +861,54 @@ export default function AdminPage() {
             )}
           </div>
 
+          {/* Gallery visibility card */}
+          <div className="mb-6 p-5 bg-white border border-[rgba(59,47,47,0.1)] rounded-[2px] flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="min-w-0">
+              <p className="font-sans-body text-[11px] font-semibold uppercase tracking-[0.12em] text-[#3B2F2F]/60 mb-1">
+                Photos Section
+              </p>
+              {config ? (
+                <>
+                  <p className="font-sans-body text-sm text-[#3B2F2F]">
+                    {config.gallery_visible ? (
+                      <>
+                        <span className="inline-block w-2 h-2 rounded-full bg-[#3D6B5B] mr-2 align-middle" />
+                        Visible &mdash; guests see the Photos section and the Gallery nav link.
+                      </>
+                    ) : (
+                      <>
+                        <span className="inline-block w-2 h-2 rounded-full bg-[#7B2D41] mr-2 align-middle" />
+                        Hidden &mdash; the Photos section is not rendered and the Gallery nav link is dropped.
+                      </>
+                    )}
+                  </p>
+                  {galleryError && (
+                    <p className="font-sans-body text-xs text-[#7B2D41] mt-1">{galleryError}</p>
+                  )}
+                </>
+              ) : (
+                <p className="font-sans-body text-xs text-[#3B2F2F]/50">Loading...</p>
+              )}
+            </div>
+            {config && (
+              <button
+                onClick={toggleGalleryVisible}
+                disabled={galleryBusy}
+                className={`font-sans-body text-xs font-semibold uppercase tracking-[0.12em] px-6 py-3 transition-colors duration-300 disabled:opacity-60 self-start md:self-auto whitespace-nowrap ${
+                  config.gallery_visible
+                    ? 'bg-[#7B2D41] text-white hover:bg-[#3B2F2F]'
+                    : 'bg-[#3D6B5B] text-white hover:bg-[#3B2F2F]'
+                }`}
+              >
+                {galleryBusy
+                  ? 'Saving...'
+                  : config.gallery_visible
+                  ? 'Hide Photos'
+                  : 'Show Photos'}
+              </button>
+            )}
+          </div>
+
           {/* Catering card — Kerala veg/non-veg toggle */}
           <div className="mb-6 p-5 bg-white border border-[rgba(59,47,47,0.1)] rounded-[2px] flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="min-w-0">
@@ -792,6 +957,39 @@ export default function AdminPage() {
                   : 'Enable non-veg'}
               </button>
             )}
+          </div>
+
+          {/* Download card */}
+          <div className="mb-6 p-5 bg-white border border-[rgba(59,47,47,0.1)] rounded-[2px] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <p className="font-sans-body text-[11px] font-semibold uppercase tracking-[0.12em] text-[#3B2F2F]/60 mb-1">
+                Download RSVP Data
+              </p>
+              <p className="font-sans-body text-sm text-[#3B2F2F]">
+                Export submissions as a CSV file.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 self-start sm:self-auto">
+              <label htmlFor="download-filter" className="sr-only">
+                Location filter
+              </label>
+              <select
+                id="download-filter"
+                value={downloadFilter}
+                onChange={(e) => setDownloadFilter(e.target.value as DownloadFilter)}
+                className="bg-white border border-[rgba(59,47,47,0.15)] rounded-[2px] px-3 py-2.5 font-sans-body text-sm text-[#3B2F2F] focus:border-[#C4A055] focus:outline-none focus:ring-2 focus:ring-[rgba(196,160,85,0.15)] transition-all duration-200 cursor-pointer"
+              >
+                <option value="both">Both locations</option>
+                <option value="kolkata">Kolkata only</option>
+                <option value="kerala">Pala (Kerala) only</option>
+              </select>
+              <button
+                onClick={handleDownload}
+                className="font-sans-body text-xs font-semibold uppercase tracking-[0.12em] bg-[#3B2F2F] text-white px-6 py-3 hover:bg-[#C4A055] transition-colors duration-300 whitespace-nowrap"
+              >
+                Download CSV
+              </button>
+            </div>
           </div>
 
           {deleteError && (

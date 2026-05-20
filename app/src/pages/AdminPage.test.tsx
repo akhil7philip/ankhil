@@ -44,6 +44,7 @@ const baseConfig = {
   kerala_railway_stations: ['Kottayam Railway Station'],
   kerala_non_veg: false,
   faq_visible: true,
+  gallery_visible: true,
   hidden_events: ['mehendi'],
   updated_at: '2026-01-01T00:00:00Z',
 };

@@ -6,6 +6,9 @@ interface NavigationProps {
   /** When false the "FAQ" nav entry is dropped (because FAQSection isn't
    * rendered either). Lifted to HomePage. */
   faqVisible?: boolean;
+  /** When false the "Gallery" nav entry is dropped (because GallerySection
+   * isn't rendered either). Lifted to HomePage. */
+  galleryVisible?: boolean;
 }
 
 const navItems = [
@@ -18,14 +21,16 @@ const navItems = [
   { label: 'Gallery', target: 'gallery' },
 ] as const;
 
-export default function Navigation({ lenis, faqVisible = true }: NavigationProps) {
+export default function Navigation({ lenis, faqVisible = true, galleryVisible = true }: NavigationProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>(null);
 
-  const visibleNavItems = faqVisible
-    ? navItems
-    : navItems.filter((item) => item.target !== 'faq');
+  const visibleNavItems = navItems.filter((item) => {
+    if (item.target === 'faq' && !faqVisible) return false;
+    if (item.target === 'gallery' && !galleryVisible) return false;
+    return true;
+  });
 
   useEffect(() => {
     const handleScroll = () => {
@@ -53,7 +58,7 @@ export default function Navigation({ lenis, faqVisible = true }: NavigationProps
     );
 
     const observed: Element[] = [];
-    for (const item of navItems) {
+    for (const item of visibleNavItems) {
       const el = document.getElementById(item.target);
       if (el) {
         observer.observe(el);
