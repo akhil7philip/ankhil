@@ -110,6 +110,7 @@ export default function Navigation({ lenis, faqVisible = true, galleryVisible = 
           <button
             onClick={() => handleNavClick('hero')}
             className="font-serif-display text-sm tracking-[0.15em] text-[#3B2F2F] hover:text-[#C4A055] transition-colors duration-300"
+            style={{ textShadow: '0 1px 4px rgba(245,241,235,0.95)' }}
           >
             A&A
           </button>
@@ -124,6 +125,7 @@ export default function Navigation({ lenis, faqVisible = true, galleryVisible = 
                   onClick={() => handleNavClick(item.target)}
                   aria-current={isActive ? 'true' : undefined}
                   className="group relative font-sans-body text-xs font-semibold uppercase tracking-[0.12em] text-[#3B2F2F] hover:text-[#3B2F2F] transition-colors duration-300 py-1"
+                  style={{ textShadow: '0 1px 4px rgba(245,241,235,0.95)' }}
                 >
                   {item.label}
                   <span
