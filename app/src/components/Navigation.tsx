@@ -102,8 +102,8 @@ export default function Navigation({ lenis, faqVisible = true, galleryVisible = 
       <nav
         className={`fixed top-0 left-0 right-0 z-[100] h-12 transition-all duration-300 ${
           scrolled
-            ? 'bg-[#F5F1EB]/92 backdrop-blur-sm shadow-[0_1px_8px_rgba(59,47,47,0.06)]'
-            : 'bg-[#F5F1EB]/80 backdrop-blur-sm'
+            ? 'bg-[#F5F1EB]/92 backdrop-blur-sm shadow-[0_1px_8px_rgba(59,47,47,0.06)] md:bg-[#F5F1EB]'
+            : 'bg-[#F5F1EB]/80 backdrop-blur-sm md:bg-[#F5F1EB]/95'
         }`}
       >
         <div className="max-w-[1200px] mx-auto h-full flex items-center justify-between px-5 md:px-10">
