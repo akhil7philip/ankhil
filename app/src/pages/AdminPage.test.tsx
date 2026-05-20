@@ -76,6 +76,12 @@ describe('AdminPage', () => {
     render(<AdminPage />, { wrapper: MemoryRouter });
 
     await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Site Settings/i })).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: /Site Settings/i }));
+
+    await waitFor(() => {
       expect(screen.getByText('Event Visibility')).toBeInTheDocument();
     });
 
@@ -90,6 +96,12 @@ describe('AdminPage', () => {
     render(<AdminPage />, { wrapper: MemoryRouter });
 
     await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Site Settings/i })).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: /Site Settings/i }));
+
+    await waitFor(() => {
       expect(screen.getByLabelText('Mehendi')).toBeInTheDocument();
     });
 
@@ -99,6 +111,12 @@ describe('AdminPage', () => {
 
   it('toggling an event and saving updates hidden_events', async () => {
     render(<AdminPage />, { wrapper: MemoryRouter });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Site Settings/i })).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: /Site Settings/i }));
 
     await waitFor(() => {
       expect(screen.getByLabelText('Mehendi')).toBeInTheDocument();
@@ -120,6 +138,12 @@ describe('AdminPage', () => {
 
   it('prevents hiding all events and shows validation error', async () => {
     render(<AdminPage />, { wrapper: MemoryRouter });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Site Settings/i })).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: /Site Settings/i }));
 
     await waitFor(() => {
       expect(screen.getByLabelText('Haldi')).toBeInTheDocument();
