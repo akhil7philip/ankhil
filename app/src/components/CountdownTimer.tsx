@@ -76,8 +76,8 @@ export default function CountdownTimer({
               <div
                 className={`font-sans-body font-semibold uppercase tracking-[0.15em] mt-1 ${
                   isSmall
-                    ? 'text-[9px] text-[#C4A055]/80'
-                    : 'text-[10px] text-[#C4A055]'
+                    ? 'text-[10px] text-black'
+                    : 'text-[11px] text-black'
                 }`}
               >
                 {block.label}
