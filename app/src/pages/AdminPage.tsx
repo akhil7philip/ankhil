@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import AdminPhotoSection from '@/components/AdminPhotoSection';
 import { ALL_KOLKATA_EVENT_IDS } from '@/lib/events';
 
 interface RSVP {
@@ -100,11 +101,15 @@ interface SiteConfig {
   faq_visible: boolean;
   gallery_visible: boolean;
   hidden_events: string[] | null;
+  photo_upload_enabled: boolean;
+  photo_upload_code: string | null;
+  photos_visible_after: string | null;
+  hide_default_photos: boolean;
   updated_at: string;
 }
 
 const CONFIG_SELECT =
-  'rsvp_open, rsvp_closed_message, kolkata_venue, kolkata_map_url, kolkata_railway_stations, kerala_venue, kerala_map_url, kerala_railway_stations, kerala_non_veg, faq_visible, gallery_visible, hidden_events, updated_at';
+  'rsvp_open, rsvp_closed_message, kolkata_venue, kolkata_map_url, kolkata_railway_stations, kerala_venue, kerala_map_url, kerala_railway_stations, kerala_non_veg, faq_visible, gallery_visible, hidden_events, photo_upload_enabled, photo_upload_code, photos_visible_after, hide_default_photos, updated_at';
 
 interface VenueFormState {
   kolkataVenue: string;
@@ -239,9 +244,20 @@ export default function AdminPage() {
   const [eventVisibilityError, setEventVisibilityError] = useState<string | null>(null);
   const [eventVisibilitySaved, setEventVisibilitySaved] = useState(false);
 
+  const [photoUploadBusy, setPhotoUploadBusy] = useState(false);
+  const [photoUploadError, setPhotoUploadError] = useState<string | null>(null);
+  const [photoUploadSaved, setPhotoUploadSaved] = useState(false);
+
+  const [photosVisibleAfterBusy, setPhotosVisibleAfterBusy] = useState(false);
+  const [photosVisibleAfterError, setPhotosVisibleAfterError] = useState<string | null>(null);
+  const [photosVisibleAfterSaved, setPhotosVisibleAfterSaved] = useState(false);
+
+  const [hideDefaultsBusy, setHideDefaultsBusy] = useState(false);
+  const [hideDefaultsError, setHideDefaultsError] = useState<string | null>(null);
+
   type DownloadFilter = 'kolkata' | 'kerala' | 'both';
   const [downloadFilter, setDownloadFilter] = useState<DownloadFilter>('both');
-  const [activeTab, setActiveTab] = useState<'rsvps' | 'settings'>('rsvps');
+  const [activeTab, setActiveTab] = useState<'rsvps' | 'settings' | 'photos'>('rsvps');
 
   function escapeCsvCell(val: string | number | boolean | null | undefined): string {
     const str = val === null || val === undefined ? '' : String(val);
@@ -454,6 +470,97 @@ export default function AdminPage() {
     if (data) setConfig(data);
   };
 
+  const togglePhotoUploadEnabled = async () => {
+    if (!config) return;
+    const next = !config.photo_upload_enabled;
+    setPhotoUploadBusy(true);
+    setPhotoUploadError(null);
+    setPhotoUploadSaved(false);
+    const { data, error } = await supabase
+      .from('site_config')
+      .update({ photo_upload_enabled: next })
+      .eq('id', true)
+      .select(CONFIG_SELECT)
+      .maybeSingle();
+    setPhotoUploadBusy(false);
+    if (error) {
+      setPhotoUploadError(error.message);
+      return;
+    }
+    if (data) {
+      setConfig(data);
+      setPhotoUploadSaved(true);
+      setTimeout(() => setPhotoUploadSaved(false), 2500);
+    }
+  };
+
+  const savePhotoUploadCode = async (code: string) => {
+    if (!config) return;
+    setPhotoUploadBusy(true);
+    setPhotoUploadError(null);
+    setPhotoUploadSaved(false);
+    const { data, error } = await supabase
+      .from('site_config')
+      .update({ photo_upload_code: code.trim() || null })
+      .eq('id', true)
+      .select(CONFIG_SELECT)
+      .maybeSingle();
+    setPhotoUploadBusy(false);
+    if (error) {
+      setPhotoUploadError(error.message);
+      return;
+    }
+    if (data) {
+      setConfig(data);
+      setPhotoUploadSaved(true);
+      setTimeout(() => setPhotoUploadSaved(false), 2500);
+    }
+  };
+
+  const savePhotosVisibleAfter = async (dateStr: string) => {
+    if (!config) return;
+    setPhotosVisibleAfterBusy(true);
+    setPhotosVisibleAfterError(null);
+    setPhotosVisibleAfterSaved(false);
+    const { data, error } = await supabase
+      .from('site_config')
+      .update({
+        photos_visible_after: dateStr ? new Date(dateStr).toISOString() : null,
+      })
+      .eq('id', true)
+      .select(CONFIG_SELECT)
+      .maybeSingle();
+    setPhotosVisibleAfterBusy(false);
+    if (error) {
+      setPhotosVisibleAfterError(error.message);
+      return;
+    }
+    if (data) {
+      setConfig(data);
+      setPhotosVisibleAfterSaved(true);
+      setTimeout(() => setPhotosVisibleAfterSaved(false), 2500);
+    }
+  };
+
+  const toggleHideDefaultPhotos = async () => {
+    if (!config) return;
+    const next = !config.hide_default_photos;
+    setHideDefaultsBusy(true);
+    setHideDefaultsError(null);
+    const { data, error } = await supabase
+      .from('site_config')
+      .update({ hide_default_photos: next })
+      .eq('id', true)
+      .select(CONFIG_SELECT)
+      .maybeSingle();
+    setHideDefaultsBusy(false);
+    if (error) {
+      setHideDefaultsError(error.message);
+      return;
+    }
+    if (data) setConfig(data);
+  };
+
   const toggleKeralaNonVeg = async () => {
     if (!config) return;
     const next = !config.kerala_non_veg;
@@ -596,6 +703,16 @@ export default function AdminPage() {
               }`}
             >
               Site Settings
+            </button>
+            <button
+              onClick={() => setActiveTab('photos')}
+              className={`font-sans-body text-xs font-semibold uppercase tracking-[0.12em] px-5 py-3 border-b-2 transition-colors duration-200 ${
+                activeTab === 'photos'
+                  ? 'border-[#C4A055] text-[#3B2F2F]'
+                  : 'border-transparent text-[#3B2F2F]/50 hover:text-[#3B2F2F]'
+              }`}
+            >
+              Photos
             </button>
           </div>
 
@@ -799,6 +916,8 @@ export default function AdminPage() {
                 </div>
               )}
             </>
+          ) : activeTab === 'photos' ? (
+            <AdminPhotoSection />
           ) : (
             <>
               {/* Site config card */}
@@ -1133,6 +1252,144 @@ export default function AdminPage() {
                       ? 'Hide Photos'
                       : 'Show Photos'}
                   </button>
+                )}
+              </div>
+
+              {/* Photo upload settings card */}
+              <div className="mb-6 p-5 bg-white border border-[rgba(59,47,47,0.1)] rounded-[2px]">
+                <p className="font-sans-body text-[11px] font-semibold uppercase tracking-[0.12em] text-[#3B2F2F]/60 mb-4">
+                  Guest Photo Uploads
+                </p>
+
+                {config === null ? (
+                  <p className="font-sans-body text-xs text-[#3B2F2F]/50">Loading...</p>
+                ) : (
+                  <div className="space-y-5">
+                    {/* Upload enabled toggle */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="font-sans-body text-sm text-[#3B2F2F]">
+                          {config.photo_upload_enabled ? (
+                            <>
+                              <span className="inline-block w-2 h-2 rounded-full bg-[#3D6B5B] mr-2 align-middle" />
+                              Uploads open — guests can submit photos.
+                            </>
+                          ) : (
+                            <>
+                              <span className="inline-block w-2 h-2 rounded-full bg-[#7B2D41] mr-2 align-middle" />
+                              Uploads closed — the upload form is disabled.
+                            </>
+                          )}
+                        </p>
+                      </div>
+                      <button
+                        onClick={togglePhotoUploadEnabled}
+                        disabled={photoUploadBusy}
+                        className={`font-sans-body text-xs font-semibold uppercase tracking-[0.12em] px-6 py-3 transition-colors duration-300 disabled:opacity-60 self-start sm:self-auto whitespace-nowrap ${
+                          config.photo_upload_enabled
+                            ? 'bg-[#7B2D41] text-white hover:bg-[#3B2F2F]'
+                            : 'bg-[#3D6B5B] text-white hover:bg-[#3B2F2F]'
+                        }`}
+                      >
+                        {photoUploadBusy
+                          ? 'Saving...'
+                          : config.photo_upload_enabled
+                          ? 'Close Uploads'
+                          : 'Open Uploads'}
+                      </button>
+                    </div>
+
+                    {/* Access code */}
+                    <div>
+                      <label className="block font-sans-body text-sm text-[#3B2F2F] mb-2">
+                        Upload access code
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="text"
+                          defaultValue={config.photo_upload_code ?? ''}
+                          onBlur={(e) => savePhotoUploadCode(e.target.value)}
+                          placeholder="ANKHIL2026"
+                          className="bg-white border border-[rgba(59,47,47,0.15)] rounded-[2px] px-3 py-2 font-sans-body text-sm text-[#3B2F2F] placeholder:text-[#3B2F2F]/40 focus:border-[#C4A055] focus:outline-none focus:ring-2 focus:ring-[rgba(196,160,85,0.15)] transition-all duration-200 w-48"
+                        />
+                        <span className="font-sans-body text-[11px] text-[#3B2F2F]/55">
+                          Guests use this code to access /upload
+                        </span>
+                      </div>
+                      {photoUploadError && (
+                        <p className="font-sans-body text-xs text-[#7B2D41] mt-1">{photoUploadError}</p>
+                      )}
+                      {photoUploadSaved && !photoUploadError && (
+                        <p className="font-sans-body text-xs text-[#3D6B5B] mt-1">Saved.</p>
+                      )}
+                    </div>
+
+                    {/* Visibility embargo */}
+                    <div>
+                      <label className="block font-sans-body text-sm text-[#3B2F2F] mb-2">
+                        Gallery embargo (optional)
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="datetime-local"
+                          defaultValue={
+                            config.photos_visible_after
+                              ? new Date(config.photos_visible_after).toISOString().slice(0, 16)
+                              : ''
+                          }
+                          onBlur={(e) => savePhotosVisibleAfter(e.target.value)}
+                          disabled={photosVisibleAfterBusy}
+                          className="bg-white border border-[rgba(59,47,47,0.15)] rounded-[2px] px-3 py-2 font-sans-body text-sm text-[#3B2F2F] focus:border-[#C4A055] focus:outline-none focus:ring-2 focus:ring-[rgba(196,160,85,0.15)] transition-all duration-200 disabled:opacity-50"
+                        />
+                        <span className="font-sans-body text-[11px] text-[#3B2F2F]/55">
+                          No approved photos visible before this time
+                        </span>
+                      </div>
+                      {photosVisibleAfterError && (
+                        <p className="font-sans-body text-xs text-[#7B2D41] mt-1">{photosVisibleAfterError}</p>
+                      )}
+                      {photosVisibleAfterSaved && !photosVisibleAfterError && (
+                        <p className="font-sans-body text-xs text-[#3D6B5B] mt-1">Saved.</p>
+                      )}
+                    </div>
+
+                    {/* Hide default photos toggle */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-2 border-t border-[rgba(59,47,47,0.08)]">
+                      <div className="min-w-0">
+                        <p className="font-sans-body text-sm text-[#3B2F2F]">
+                          {config.hide_default_photos ? (
+                            <>
+                              <span className="inline-block w-2 h-2 rounded-full bg-[#7B2D41] mr-2 align-middle" />
+                              Default pre-wedding photos are hidden.
+                            </>
+                          ) : (
+                            <>
+                              <span className="inline-block w-2 h-2 rounded-full bg-[#3D6B5B] mr-2 align-middle" />
+                              Default pre-wedding photos are visible.
+                            </>
+                          )}
+                        </p>
+                        {hideDefaultsError && (
+                          <p className="font-sans-body text-xs text-[#7B2D41] mt-1">{hideDefaultsError}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={toggleHideDefaultPhotos}
+                        disabled={hideDefaultsBusy}
+                        className={`font-sans-body text-xs font-semibold uppercase tracking-[0.12em] px-6 py-3 transition-colors duration-300 disabled:opacity-60 self-start sm:self-auto whitespace-nowrap ${
+                          config.hide_default_photos
+                            ? 'bg-[#3D6B5B] text-white hover:bg-[#3B2F2F]'
+                            : 'bg-[#7B2D41] text-white hover:bg-[#3B2F2F]'
+                        }`}
+                      >
+                        {hideDefaultsBusy
+                          ? 'Saving...'
+                          : config.hide_default_photos
+                          ? 'Show Defaults'
+                          : 'Hide Defaults'}
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
 

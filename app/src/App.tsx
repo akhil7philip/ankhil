@@ -15,6 +15,8 @@ import FAQSection from '@/sections/FAQSection';
 import GallerySection from '@/sections/GallerySection';
 import AdminPage from '@/pages/AdminPage';
 import RSVPEditPage from '@/pages/RSVPEditPage';
+import UploadPage from '@/pages/UploadPage';
+import LivePage from '@/pages/LivePage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import { supabase } from '@/lib/supabase';
 
@@ -99,6 +101,8 @@ export default function App({ lenis }: AppProps) {
         <Route path="/" element={<HomePage lenis={lenis} />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/rsvp/edit/:token" element={<RSVPEditPage />} />
+        <Route path="/upload" element={<UploadPage />} />
+        <Route path="/live" element={<LivePage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
