@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import ScrollReveal from '@/components/ScrollReveal';
 import { supabase } from '@/lib/supabase';
 
@@ -51,6 +52,7 @@ export default function GallerySection({ darkBackground = false }: GallerySectio
   const [reportBusy, setReportBusy] = useState(false);
   const [reportDone, setReportDone] = useState(false);
   const [hideDefaults, setHideDefaults] = useState(false);
+  const [uploadsOpen, setUploadsOpen] = useState(false);
 
   const remainingCount = Math.max(0, galleryImages.length - 2);
 
@@ -69,11 +71,12 @@ export default function GallerySection({ darkBackground = false }: GallerySectio
           .select('id, storage_path, thumbnail_path, width, height, likes_count')
           .eq('status', 'approved')
           .order('reviewed_at', { ascending: false }),
-        supabase.from('site_config').select('hide_default_photos').maybeSingle(),
+        supabase.from('site_config').select('hide_default_photos, photo_upload_enabled').maybeSingle(),
       ]);
 
       setGuestPhotos(photos || []);
       if (config?.hide_default_photos) setHideDefaults(true);
+      if (config?.photo_upload_enabled) setUploadsOpen(true);
 
       if (photos && photos.length > 0) {
         const { data: tags } = await supabase
@@ -87,6 +90,11 @@ export default function GallerySection({ darkBackground = false }: GallerySectio
 
         setFaceTags(tags || []);
       }
+
+      // Photos loaded → page height changed → recalc ScrollTrigger positions
+      requestAnimationFrame(() => {
+        ScrollTrigger.refresh();
+      });
     }
     load();
   }, []);
@@ -165,20 +173,22 @@ export default function GallerySection({ darkBackground = false }: GallerySectio
         {/* Upload CTA */}
         <ScrollReveal>
           <div className="mb-8 md:mb-10">
-            <Link
-              to="/upload"
-              className={`inline-flex items-center gap-2 font-sans-body text-xs font-semibold uppercase tracking-[0.12em] px-5 py-2.5 transition-colors duration-300 ${
-                darkBackground
-                  ? 'bg-[#C4A055] text-[#3B2F2F] hover:bg-white'
-                  : 'bg-[#3B2F2F] text-white hover:bg-[#C4A055]'
-              }`}
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              Upload Your Photos
-            </Link>
-            <span className="mx-3 text-[#3B2F2F]/20">|</span>
+            {uploadsOpen && (
+              <Link
+                to="/upload"
+                className={`inline-flex items-center gap-2 font-sans-body text-xs font-semibold uppercase tracking-[0.12em] px-5 py-2.5 transition-colors duration-300 ${
+                  darkBackground
+                    ? 'bg-[#C4A055] text-[#3B2F2F] hover:bg-white'
+                    : 'bg-[#3B2F2F] text-white hover:bg-[#C4A055]'
+                }`}
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Upload Your Photos
+              </Link>
+            )}
+            {uploadsOpen && <span className="mx-3 text-[#3B2F2F]/20">|</span>}
             <Link
               to="/live"
               className={`inline-flex items-center gap-2 font-sans-body text-xs font-semibold uppercase tracking-[0.12em] transition-colors duration-300 ${

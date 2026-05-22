@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import imageCompression from 'browser-image-compression';
@@ -26,6 +26,28 @@ export default function UploadPage() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const code = searchParams.get('code') || '';
+
+  useEffect(() => {
+    async function check() {
+      const { data: config } = await supabase
+        .from('site_config')
+        .select('photo_upload_enabled, photo_upload_code')
+        .maybeSingle();
+
+      if (!config?.photo_upload_enabled) {
+        setUploadEnabled(false);
+        return;
+      }
+
+      if (code && config.photo_upload_code && code !== config.photo_upload_code) {
+        setUploadEnabled(false);
+        return;
+      }
+
+      setUploadEnabled(true);
+    }
+    check();
+  }, [code]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newFiles: UploadFile[] = acceptedFiles.map((file) => ({
@@ -176,9 +198,15 @@ export default function UploadPage() {
     return (
       <div className="min-h-screen bg-[#F5F1EB] flex items-center justify-center px-5">
         <div className="bg-white rounded-[4px] p-8 md:p-12 w-full max-w-[440px] shadow-[0_4px_24px_rgba(0,0,0,0.1)] text-center">
-          <h1 className="font-serif-display text-2xl text-[#3B2F2F] mb-3">Uploads Not Available</h1>
+          <div className="w-12 h-12 rounded-full bg-[#7B2D41]/10 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-6 h-6 text-[#7B2D41]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0110 0v4" />
+            </svg>
+          </div>
+          <h1 className="font-serif-display text-2xl text-[#3B2F2F] mb-3">Uploads Locked</h1>
           <p className="font-sans-body text-sm text-[#3B2F2F]/70 mb-6">
-            Photo uploads are currently closed or the access code is incorrect.
+            Photo uploads are currently closed.
           </p>
           <Link
             to="/"
@@ -186,6 +214,17 @@ export default function UploadPage() {
           >
             Back to Wedding Site
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (uploadEnabled === null) {
+    return (
+      <div className="min-h-screen bg-[#F5F1EB] flex items-center justify-center px-5">
+        <div className="text-center">
+          <div className="w-6 h-6 border-2 border-[#3B2F2F]/20 border-t-[#C4A055] rounded-full animate-spin mx-auto mb-4" />
+          <p className="font-sans-body text-sm text-[#3B2F2F]/60">Checking upload status...</p>
         </div>
       </div>
     );
