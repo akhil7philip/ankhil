@@ -105,11 +105,13 @@ interface SiteConfig {
   photo_upload_code: string | null;
   photos_visible_after: string | null;
   hide_default_photos: boolean;
+  enable_passcode_gate: boolean;
+  passcode: string;
   updated_at: string;
 }
 
 const CONFIG_SELECT =
-  'rsvp_open, rsvp_closed_message, kolkata_venue, kolkata_map_url, kolkata_railway_stations, kerala_venue, kerala_map_url, kerala_railway_stations, kerala_non_veg, faq_visible, gallery_visible, hidden_events, photo_upload_enabled, photo_upload_code, photos_visible_after, hide_default_photos, updated_at';
+  'rsvp_open, rsvp_closed_message, kolkata_venue, kolkata_map_url, kolkata_railway_stations, kerala_venue, kerala_map_url, kerala_railway_stations, kerala_non_veg, faq_visible, gallery_visible, hidden_events, photo_upload_enabled, photo_upload_code, photos_visible_after, hide_default_photos, enable_passcode_gate, passcode, updated_at';
 
 interface VenueFormState {
   kolkataVenue: string;
@@ -254,6 +256,10 @@ export default function AdminPage() {
 
   const [hideDefaultsBusy, setHideDefaultsBusy] = useState(false);
   const [hideDefaultsError, setHideDefaultsError] = useState<string | null>(null);
+
+  const [passcodeGateBusy, setPasscodeGateBusy] = useState(false);
+  const [passcodeGateError, setPasscodeGateError] = useState<string | null>(null);
+  const [passcodeGateSaved, setPasscodeGateSaved] = useState(false);
 
   type DownloadFilter = 'kolkata' | 'kerala' | 'both';
   const [downloadFilter, setDownloadFilter] = useState<DownloadFilter>('both');
@@ -559,6 +565,58 @@ export default function AdminPage() {
       return;
     }
     if (data) setConfig(data);
+  };
+
+  const togglePasscodeGate = async () => {
+    if (!config) return;
+    const next = !config.enable_passcode_gate;
+    setPasscodeGateBusy(true);
+    setPasscodeGateError(null);
+    setPasscodeGateSaved(false);
+    const { data, error } = await supabase
+      .from('site_config')
+      .update({ enable_passcode_gate: next })
+      .eq('id', true)
+      .select(CONFIG_SELECT)
+      .maybeSingle();
+    setPasscodeGateBusy(false);
+    if (error) {
+      setPasscodeGateError(error.message);
+      return;
+    }
+    if (data) {
+      setConfig(data);
+      setPasscodeGateSaved(true);
+      setTimeout(() => setPasscodeGateSaved(false), 2500);
+    }
+  };
+
+  const savePasscode = async (newPasscode: string) => {
+    if (!config) return;
+    const trimmed = newPasscode.trim();
+    if (!trimmed) {
+      setPasscodeGateError('Passcode cannot be empty.');
+      return;
+    }
+    setPasscodeGateBusy(true);
+    setPasscodeGateError(null);
+    setPasscodeGateSaved(false);
+    const { data, error } = await supabase
+      .from('site_config')
+      .update({ passcode: trimmed })
+      .eq('id', true)
+      .select(CONFIG_SELECT)
+      .maybeSingle();
+    setPasscodeGateBusy(false);
+    if (error) {
+      setPasscodeGateError(error.message);
+      return;
+    }
+    if (data) {
+      setConfig(data);
+      setPasscodeGateSaved(true);
+      setTimeout(() => setPasscodeGateSaved(false), 2500);
+    }
   };
 
   const toggleKeralaNonVeg = async () => {
@@ -1388,6 +1446,78 @@ export default function AdminPage() {
                           ? 'Show Defaults'
                           : 'Hide Defaults'}
                       </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Passcode gate settings card */}
+              <div className="mb-6 p-5 bg-white border border-[rgba(59,47,47,0.1)] rounded-[2px]">
+                <p className="font-sans-body text-[11px] font-semibold uppercase tracking-[0.12em] text-[#3B2F2F]/60 mb-4">
+                  Site Passcode
+                </p>
+
+                {config === null ? (
+                  <p className="font-sans-body text-xs text-[#3B2F2F]/50">Loading...</p>
+                ) : (
+                  <div className="space-y-5">
+                    {/* Gate enabled toggle */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="font-sans-body text-sm text-[#3B2F2F]">
+                          {config.enable_passcode_gate ? (
+                            <>
+                              <span className="inline-block w-2 h-2 rounded-full bg-[#3D6B5B] mr-2 align-middle" />
+                              Passcode gate is on — guests must enter the passcode to view the site.
+                            </>
+                          ) : (
+                            <>
+                              <span className="inline-block w-2 h-2 rounded-full bg-[#7B2D41] mr-2 align-middle" />
+                              Passcode gate is off — the site is publicly accessible.
+                            </>
+                          )}
+                        </p>
+                      </div>
+                      <button
+                        onClick={togglePasscodeGate}
+                        disabled={passcodeGateBusy}
+                        className={`font-sans-body text-xs font-semibold uppercase tracking-[0.12em] px-6 py-3 transition-colors duration-300 disabled:opacity-60 self-start sm:self-auto whitespace-nowrap ${
+                          config.enable_passcode_gate
+                            ? 'bg-[#7B2D41] text-white hover:bg-[#3B2F2F]'
+                            : 'bg-[#3D6B5B] text-white hover:bg-[#3B2F2F]'
+                        }`}
+                      >
+                        {passcodeGateBusy
+                          ? 'Saving...'
+                          : config.enable_passcode_gate
+                          ? 'Disable Gate'
+                          : 'Enable Gate'}
+                      </button>
+                    </div>
+
+                    {/* Passcode input */}
+                    <div>
+                      <label className="block font-sans-body text-sm text-[#3B2F2F] mb-2">
+                        Current passcode
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="text"
+                          defaultValue={config.passcode}
+                          onBlur={(e) => savePasscode(e.target.value)}
+                          disabled={passcodeGateBusy}
+                          className="bg-white border border-[rgba(59,47,47,0.15)] rounded-[2px] px-3 py-2 font-sans-body text-sm text-[#3B2F2F] placeholder:text-[#3B2F2F]/40 focus:border-[#C4A055] focus:outline-none focus:ring-2 focus:ring-[rgba(196,160,85,0.15)] transition-all duration-200 w-48 disabled:opacity-50"
+                        />
+                        <span className="font-sans-body text-[11px] text-[#3B2F2F]/55">
+                          Guests enter this to unlock the site
+                        </span>
+                      </div>
+                      {passcodeGateError && (
+                        <p className="font-sans-body text-xs text-[#7B2D41] mt-1">{passcodeGateError}</p>
+                      )}
+                      {passcodeGateSaved && !passcodeGateError && (
+                        <p className="font-sans-body text-xs text-[#3D6B5B] mt-1">Saved.</p>
+                      )}
                     </div>
                   </div>
                 )}

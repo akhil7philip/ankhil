@@ -1,25 +1,44 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
-const PASSCODE = 'rion';
 const STORAGE_KEY = 'ankhil-site-unlocked';
 
+interface PasscodeConfig {
+  enable_passcode_gate: boolean;
+  passcode: string;
+}
+
 export default function PasscodeGate({ children }: { children: React.ReactNode }) {
+  const [config, setConfig] = useState<PasscodeConfig | null>(null);
+  const [loading, setLoading] = useState(true);
   const [unlocked, setUnlocked] = useState(false);
   const [input, setInput] = useState('');
   const [error, setError] = useState(false);
-  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    const stored = sessionStorage.getItem(STORAGE_KEY);
-    if (stored === 'true') {
-      setUnlocked(true);
+    async function load() {
+      const stored = sessionStorage.getItem(STORAGE_KEY);
+      if (stored === 'true') {
+        setUnlocked(true);
+      }
+
+      const { data } = await supabase
+        .from('site_config')
+        .select('enable_passcode_gate, passcode')
+        .maybeSingle();
+
+      if (data) {
+        setConfig(data);
+      }
+      setLoading(false);
     }
-    setChecking(false);
+    load();
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (input.trim().toLowerCase() === PASSCODE) {
+    const expected = config?.passcode?.toLowerCase().trim();
+    if (expected && input.trim().toLowerCase() === expected) {
       sessionStorage.setItem(STORAGE_KEY, 'true');
       setUnlocked(true);
       setError(false);
@@ -29,7 +48,7 @@ export default function PasscodeGate({ children }: { children: React.ReactNode }
     }
   };
 
-  if (checking) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-[#3B2F2F] flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-white/20 border-t-[#C4A055] rounded-full animate-spin" />
@@ -37,6 +56,12 @@ export default function PasscodeGate({ children }: { children: React.ReactNode }
     );
   }
 
+  // Gate disabled → show site immediately
+  if (!config?.enable_passcode_gate) {
+    return <>{children}</>;
+  }
+
+  // Already unlocked this session
   if (unlocked) {
     return <>{children}</>;
   }
