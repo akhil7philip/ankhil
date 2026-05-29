@@ -74,7 +74,7 @@ export const kolkataEventsBase: EventItem[] = [
     time: '10:30 PM – 12:30 AM (July 9)',
     dressCode: 'Indian or Western Formals',
     notes:
-      'The sacred Hindu rites — including the Pheras (seven circles around a holy fire) — that mark Ankita and Akhil as married. The ceremony runs about 2 hours; seating is provided.',
+      'The Pheras mark Ankita and Akhil as married. The ceremony runs about 2 hours; seating is provided.',
     city: 'kolkata',
     iconType: 'wedding',
     start: '2026-07-08T22:30:00+05:30',
