@@ -47,7 +47,7 @@ export const kolkataEventsBase: EventItem[] = [
     date: 'July 7',
     name: 'Musical Night',
     time: '7:00 PM onwards',
-    dressCode: 'Shades of gold and silver',
+    dressCode: 'Indian or Western formals',
     notes: 'An evening of music and dance, with family and friends.',
     city: 'kolkata',
     iconType: 'sangeet',
